@@ -32,7 +32,9 @@ import WebsiteOrders from './components/WebsiteOrders';
 import WebsitePublic from './components/website/WebsitePublic';
 
 const isPublicSite = (): boolean =>
-  window.location.pathname.startsWith('/shop') || window.location.search.includes('view=shop');
+  window.location.pathname.startsWith('/shop') ||
+  window.location.pathname.startsWith('/website') ||
+  window.location.search.includes('view=shop');
 
 const MainLayout: React.FC = () => {
   const { user, language, isLoading } = useApp();

@@ -5,7 +5,7 @@ import { useApp } from '../AppContext';
 import { supabase } from '../supabase';
 import { Lock, Mail, User, Gem, Globe, Eye, EyeOff, AlertCircle, UserPlus, ArrowLeft, CheckCircle } from 'lucide-react';
 
-type Mode = 'login' | 'createAdmin';
+type Mode = 'login';
 
 const Login: React.FC = () => {
   const { setUser, language, workers, settings, theme } = useApp();
@@ -20,14 +20,6 @@ const Login: React.FC = () => {
   const [showPwd, setShowPwd] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // Create admin
-  const [caName, setCaName] = useState('');
-  const [caEmail, setCaEmail] = useState('');
-  const [caPassword, setCaPassword] = useState('');
-  const [caConfirm, setCaConfirm] = useState('');
-  const [caSuccess, setCaSuccess] = useState(false);
-  const [showCaPwd, setShowCaPwd] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,51 +71,6 @@ const Login: React.FC = () => {
     }
 
     setError(language === 'ar' ? 'خطأ في البريد أو كلمة السر' : 'Identifiants invalides. Veuillez réessayer.');
-    setLoading(false);
-  };
-
-  const handleCreateAdmin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    if (!caName.trim() || !caEmail.trim() || !caPassword) {
-      setError('Veuillez remplir tous les champs');
-      setLoading(false);
-      return;
-    }
-    if (caPassword !== caConfirm) {
-      setError('Les mots de passe ne correspondent pas');
-      setLoading(false);
-      return;
-    }
-    if (caPassword.length < 6) {
-      setError('Le mot de passe doit contenir au moins 6 caractères');
-      setLoading(false);
-      return;
-    }
-
-    const { data, error: signUpErr } = await supabase.auth.signUp({
-      email: caEmail,
-      password: caPassword,
-      options: { data: { role: 'admin', name: caName } },
-    });
-
-    if (signUpErr) {
-      setError(signUpErr.message);
-      setLoading(false);
-      return;
-    }
-
-    // If email confirmation is disabled, session is available immediately
-    if (data?.session?.user) {
-      setUser({ id: data.session.user.id, username: caName, email: caEmail, role: 'admin', language: 'fr' });
-      setLoading(false);
-      return;
-    }
-
-    // Email confirmation required — show success message
-    setCaSuccess(true);
     setLoading(false);
   };
 
@@ -374,22 +321,12 @@ const Login: React.FC = () => {
                     ) : (language === 'ar' ? 'دخول' : 'Se connecter')}
                   </motion.button>
                 </form>
-
-                <div style={{ marginTop: 20, textAlign: 'center' }}>
-                  <button
-                    type="button"
-                    onClick={() => { setMode('createAdmin'); setError(''); }}
-                    style={{ background: 'none', border: 'none', color: gold, fontSize: 13, fontWeight: 600, cursor: 'pointer', letterSpacing: '0.04em', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                  >
-                    <UserPlus size={14} /> Créer un compte administrateur
-                  </button>
-                </div>
               </div>
 
               {/* View website */}
               <button
                 type="button"
-                onClick={() => window.location.href = '?view=shop'}
+                onClick={() => window.location.href = '/website'}
                 style={{
                   marginTop: 12, width: '100%', height: 44, borderRadius: 11,
                   border: isDark ? '1px solid rgba(148,163,184,0.18)' : '1px solid rgba(100,116,139,0.2)',
