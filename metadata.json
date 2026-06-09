@@ -1,0 +1,7 @@
+{
+  "name": "Bijouterie Lakrouf Management System",
+  "description": "A comprehensive management application for a silver jewelry store featuring inventory tracking, POS, workshop management, worker payroll, and multi-language support (French/Arabic).",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
