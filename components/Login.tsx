@@ -230,7 +230,7 @@ const Login: React.FC = () => {
         </div>
 
         <AnimatePresence mode="wait">
-          {mode === 'login' ? (
+          {mode === 'login' && (
             <motion.div
               key="login"
               initial={shouldReduce ? false : { opacity: 0, y: 20 }}
