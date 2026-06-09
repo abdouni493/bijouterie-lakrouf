@@ -19,8 +19,8 @@ interface SidebarProps {
 
 const SectionLabel: React.FC<{ label: string; collapsed: boolean; delay?: number; theme?: string }> = ({ label, collapsed, delay = 0, theme = 'dark' }) => {
   const shouldReduce = useReducedMotion();
-  const lineColor = theme === 'dark' ? 'rgba(192,200,212,0.10)' : 'rgba(90,107,125,0.15)';
-  const textColor = theme === 'dark' ? 'rgba(192,200,212,0.30)' : 'rgba(90,107,125,0.55)';
+  const lineColor = theme === 'dark' ? 'rgba(192,200,212,0.10)' : 'rgba(201,168,76,0.25)';
+  const textColor = theme === 'dark' ? 'rgba(192,200,212,0.30)' : 'rgba(201,168,76,0.70)';
   if (collapsed) return <div className="h-px mx-3 my-2" style={{ background: 'var(--border)' }} />;
   return (
     <motion.div
@@ -106,10 +106,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isCollapsed,
       style={{
         background: theme === 'dark'
           ? 'linear-gradient(180deg, #080B10 0%, #0D1117 40%, #111822 100%)'
-          : 'linear-gradient(180deg, #E0E6EF 0%, #EDF1F6 40%, #F0F4F8 100%)',
+          : 'linear-gradient(180deg, #FAF7F2 0%, #FBF9F6 40%, #FDF9F4 100%)',
         borderRight: theme === 'dark'
           ? '1px solid rgba(192,200,212,0.08)'
-          : '1px solid rgba(90,107,125,0.14)',
+          : '1px solid rgba(201,168,76,0.25)',
         position: 'relative',
         overflow: 'hidden',
         boxShadow: theme === 'dark' ? '4px 0 32px rgba(0,0,0,0.5)' : '4px 0 24px rgba(0,0,0,0.08)',
@@ -132,8 +132,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isCollapsed,
       >
         <div style={{
           width: 44, height: 44, minWidth: 44,
-          background: theme === 'dark' ? 'rgba(192,200,212,0.08)' : 'rgba(90,107,125,0.10)',
-          border: theme === 'dark' ? '1px solid rgba(192,200,212,0.15)' : '1px solid rgba(90,107,125,0.20)',
+          background: theme === 'dark' ? 'rgba(192,200,212,0.08)' : 'rgba(201,168,76,0.12)',
+          border: theme === 'dark' ? '1px solid rgba(192,200,212,0.15)' : '1px solid rgba(201,168,76,0.30)',
           borderRadius: 14,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           overflow: 'hidden',
@@ -141,7 +141,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isCollapsed,
         }}>
           {settings?.logo
             ? <img src={settings.logo} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <Gem size={20} style={{ color: theme === 'dark' ? '#C0C8D4' : '#5A6B7D' }} />}
+            : <Gem size={20} style={{ color: theme === 'dark' ? '#C0C8D4' : '#C9A84C' }} />}
         </div>
         <AnimatePresence>
           {!isCollapsed && (
@@ -152,7 +152,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isCollapsed,
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div style={{ fontSize: 15, fontWeight: 800, color: theme === 'dark' ? '#F0F4F8' : '#0D1117', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: theme === 'dark' ? '#F0F4F8' : '#8B6F47', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                 {settings?.storeName || 'Bijouterie'}
               </div>
               <div style={{ fontSize: 9, fontWeight: 700, color: '#C9A84C', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
@@ -174,10 +174,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isCollapsed,
         className="hidden md:flex absolute -right-3.5 top-[76px] items-center justify-center z-20"
         style={{
           width: 28, height: 28,
-          background: theme === 'dark' ? '#0D1117' : '#EDF1F6',
-          border: theme === 'dark' ? '1px solid rgba(192,200,212,0.2)' : '1px solid rgba(90,107,125,0.25)',
+          background: theme === 'dark' ? '#0D1117' : '#FBF9F6',
+          border: theme === 'dark' ? '1px solid rgba(192,200,212,0.2)' : '1px solid rgba(201,168,76,0.30)',
           borderRadius: '50%',
-          color: theme === 'dark' ? 'rgba(192,200,212,0.5)' : 'rgba(90,107,125,0.7)',
+          color: theme === 'dark' ? 'rgba(192,200,212,0.5)' : 'rgba(201,168,76,0.7)',
           cursor: 'pointer',
         }}
         whileHover={shouldReduce ? {} : { borderColor: '#C0C8D4', color: '#C0C8D4', scale: 1.1 }}
@@ -216,8 +216,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isCollapsed,
                       className="sidebar-icon shrink-0"
                       style={{
                         color: isActive
-                          ? (theme === 'dark' ? '#C0C8D4' : '#1C2A38')
-                          : (theme === 'dark' ? 'rgba(192,200,212,0.40)' : 'rgba(90,107,125,0.60)'),
+                          ? (theme === 'dark' ? '#C0C8D4' : '#C9A84C')
+                          : (theme === 'dark' ? 'rgba(192,200,212,0.40)' : 'rgba(201,168,76,0.60)'),
                         transition: 'color 0.2s',
                       }}
                     />
@@ -249,7 +249,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isCollapsed,
           whileHover={shouldReduce ? {} : { backgroundColor: 'rgba(255,95,114,0.1)', x: isCollapsed ? 0 : 3 }}
           whileTap={shouldReduce ? {} : { scale: 0.97 }}
           className={`sidebar-item ${isCollapsed ? 'justify-center' : ''}`}
-          style={{ color: theme === 'dark' ? 'rgba(192,200,212,0.4)' : 'rgba(90,107,125,0.6)' }}
+          style={{ color: theme === 'dark' ? 'rgba(192,200,212,0.4)' : 'rgba(201,168,76,0.6)' }}
           title={isCollapsed ? t.logout : ''}
         >
           <LogOut size={18} className="shrink-0" style={{ transition: 'color 0.2s' }} />
