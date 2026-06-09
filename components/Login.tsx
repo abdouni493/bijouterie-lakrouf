@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useApp } from '../AppContext';
 import { supabase } from '../supabase';
-import { Lock, Mail, User, Gem, Globe, Eye, EyeOff, AlertCircle, UserPlus, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Lock, Mail, Gem, Globe, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
 type Mode = 'login';
 
@@ -326,7 +326,7 @@ const Login: React.FC = () => {
               {/* View website */}
               <button
                 type="button"
-                onClick={() => window.location.href = '/website'}
+                onClick={() => window.location.href = '?view=shop'}
                 style={{
                   marginTop: 12, width: '100%', height: 44, borderRadius: 11,
                   border: isDark ? '1px solid rgba(148,163,184,0.18)' : '1px solid rgba(100,116,139,0.2)',
@@ -338,144 +338,6 @@ const Login: React.FC = () => {
               >
                 <Globe size={15} /> Voir le site web
               </button>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="createAdmin"
-              initial={shouldReduce ? false : { opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={shouldReduce ? undefined : { opacity: 0, y: -16 }}
-              transition={{ duration: 0.35 }}
-              style={{ width: '100%', maxWidth: 420 }}
-            >
-              <div style={{
-                background: formBg, border: formBorder, borderRadius: 22,
-                padding: 40, backdropFilter: isDark ? 'blur(20px)' : undefined,
-                boxShadow: isDark ? '0 20px 60px rgba(0,0,0,0.4)' : '0 4px 24px rgba(0,0,0,0.07)',
-              }}>
-                <button
-                  type="button"
-                  onClick={() => { setMode('login'); setError(''); setCaSuccess(false); }}
-                  style={{ background: 'none', border: 'none', color: textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, marginBottom: 20, padding: 0 }}
-                >
-                  <ArrowLeft size={14} /> Retour à la connexion
-                </button>
-
-                <div style={{ marginBottom: 24 }}>
-                  <p style={{ fontSize: 10, fontWeight: 700, color: gold, letterSpacing: '0.18em', textTransform: 'uppercase', margin: '0 0 6px' }}>
-                    NOUVEAU COMPTE
-                  </p>
-                  <h2 style={{ fontSize: 24, fontWeight: 800, color: textPrimary, letterSpacing: '-0.03em', margin: 0 }}>
-                    Créer un administrateur
-                  </h2>
-                  <div style={{ marginTop: 10, width: 32, height: 3, background: `linear-gradient(90deg, ${gold}, rgba(201,168,76,0.3))`, borderRadius: 99 }} />
-                </div>
-
-                <AnimatePresence>
-                  {caSuccess ? (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                      style={{ textAlign: 'center', padding: '24px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}
-                    >
-                      <CheckCircle size={48} style={{ color: '#10b981' }} />
-                      <p style={{ fontSize: 15, fontWeight: 700, color: textPrimary, margin: 0 }}>Compte créé avec succès</p>
-                      <p style={{ fontSize: 13, color: textMuted, margin: 0, maxWidth: 280, lineHeight: 1.6 }}>
-                        Vérifiez votre email pour confirmer votre compte, puis revenez vous connecter.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => { setMode('login'); setCaSuccess(false); }}
-                        style={{ marginTop: 8, padding: '10px 24px', borderRadius: 10, border: `1px solid ${gold}`, background: 'transparent', color: gold, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-                      >
-                        Se connecter
-                      </button>
-                    </motion.div>
-                  ) : (
-                    <form onSubmit={handleCreateAdmin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      <div>
-                        <label style={labelStyle}>Nom complet</label>
-                        <div style={{ position: 'relative' }}>
-                          <User size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: textMuted, pointerEvents: 'none' }} />
-                          <input type="text" value={caName} onChange={e => setCaName(e.target.value)} placeholder="Votre nom complet" required
-                            style={inputStyle}
-                            onFocus={e => { (e.target as HTMLInputElement).style.borderColor = gold; }}
-                            onBlur={e => { (e.target as HTMLInputElement).style.borderColor = isDark ? 'rgba(148,163,184,0.15)' : 'rgba(100,116,139,0.18)'; }} />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style={labelStyle}>Adresse email</label>
-                        <div style={{ position: 'relative' }}>
-                          <Mail size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: textMuted, pointerEvents: 'none' }} />
-                          <input type="email" value={caEmail} onChange={e => setCaEmail(e.target.value)} placeholder="admin@votre-boutique.com" required
-                            style={inputStyle}
-                            onFocus={e => { (e.target as HTMLInputElement).style.borderColor = gold; }}
-                            onBlur={e => { (e.target as HTMLInputElement).style.borderColor = isDark ? 'rgba(148,163,184,0.15)' : 'rgba(100,116,139,0.18)'; }} />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style={labelStyle}>Mot de passe</label>
-                        <div style={{ position: 'relative' }}>
-                          <Lock size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: textMuted, pointerEvents: 'none' }} />
-                          <input type={showCaPwd ? 'text' : 'password'} value={caPassword} onChange={e => setCaPassword(e.target.value)} placeholder="Min. 6 caractères" required
-                            style={{ ...inputStyle, paddingRight: 44 }}
-                            onFocus={e => { (e.target as HTMLInputElement).style.borderColor = gold; }}
-                            onBlur={e => { (e.target as HTMLInputElement).style.borderColor = isDark ? 'rgba(148,163,184,0.15)' : 'rgba(100,116,139,0.18)'; }} />
-                          <button type="button" onClick={() => setShowCaPwd(!showCaPwd)} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: textMuted, cursor: 'pointer', padding: 4, display: 'flex' }}>
-                            {showCaPwd ? <EyeOff size={15} /> : <Eye size={15} />}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style={labelStyle}>Confirmer le mot de passe</label>
-                        <div style={{ position: 'relative' }}>
-                          <Lock size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: textMuted, pointerEvents: 'none' }} />
-                          <input type="password" value={caConfirm} onChange={e => setCaConfirm(e.target.value)} placeholder="Répéter le mot de passe" required
-                            style={inputStyle}
-                            onFocus={e => { (e.target as HTMLInputElement).style.borderColor = gold; }}
-                            onBlur={e => { (e.target as HTMLInputElement).style.borderColor = isDark ? 'rgba(148,163,184,0.15)' : 'rgba(100,116,139,0.18)'; }} />
-                        </div>
-                      </div>
-
-                      <AnimatePresence>
-                        {error && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                            style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}
-                          >
-                            <AlertCircle size={15} style={{ color: '#ef4444', flexShrink: 0 }} />
-                            <p style={{ fontSize: 13, color: '#ef4444', margin: 0, fontWeight: 500 }}>{error}</p>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      <motion.button
-                        type="submit"
-                        disabled={loading}
-                        whileHover={shouldReduce ? {} : { scale: 1.015 }}
-                        whileTap={shouldReduce ? {} : { scale: 0.975 }}
-                        style={{
-                          height: 48, borderRadius: 11, border: 'none', cursor: loading ? 'not-allowed' : 'pointer',
-                          background: `linear-gradient(135deg, ${gold} 0%, #B8952E 100%)`,
-                          color: '#0A0A0A', fontSize: 14, fontWeight: 800,
-                          letterSpacing: '0.06em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                          opacity: loading ? 0.75 : 1,
-                        }}
-                      >
-                        {loading ? (
-                          <><div style={{ width: 16, height: 16, border: '2px solid rgba(0,0,0,0.25)', borderTopColor: '#0A0A0A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />Création...</>
-                        ) : 'Créer le compte administrateur'}
-                      </motion.button>
-
-                      <p style={{ fontSize: 11, color: textMuted, textAlign: 'center', margin: 0, lineHeight: 1.6 }}>
-                        Si la confirmation par email est activée dans Supabase, vérifiez votre boîte mail après l'inscription.
-                      </p>
-                    </form>
-                  )}
-                </AnimatePresence>
-              </div>
             </motion.div>
           )}
         </AnimatePresence>

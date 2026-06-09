@@ -62,7 +62,7 @@ const CinematicHero: React.FC<{
     <section style={{ minHeight: '100vh', background: tc.heroBg, position: 'relative', display: 'flex', alignItems: 'center', overflow: 'hidden', paddingTop: '72px' }}>
       {isDark && <FloatingParticles count={10} size="lg" />}
 
-      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: `${MESSIKA_SPACING['5xl']} 48px`, width: '100%', display: 'grid', gridTemplateColumns: '1fr', gap: '48px', alignItems: 'center', position: 'relative', zIndex: 5 }} className="hero-grid">
+      <div style={{ maxWidth: '1400px', margin: '0 auto', padding: `${MESSIKA_SPACING['5xl']} 48px`, width: '100%', display: 'grid', gridTemplateColumns: '55% 45%', gap: '48px', alignItems: 'center', position: 'relative', zIndex: 5 }} className="hero-grid">
         <div>
           {/* Circle logo + badge */}
           <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '24px' }}>
@@ -100,12 +100,14 @@ const CinematicHero: React.FC<{
             <PremiumButton label={t.cta2} onClick={() => setCurrentPage('personalized')} variant="secondary" size="lg" theme={isDark ? 'dark' : 'light'} />
           </motion.div>
         </div>
+
+
       </div>
 
       {isDark && <div style={{ position: 'absolute', right: '-200px', top: '20%', width: '600px', height: '600px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />}
 
       <style>{`
-        @media (max-width: 768px) { .hero-grid { grid-template-columns: 1fr !important; } }
+        @media (max-width: 768px) { .hero-grid { grid-template-columns: 1fr !important; } .hero-visual { display: none !important; } }
       `}</style>
     </section>
   );
