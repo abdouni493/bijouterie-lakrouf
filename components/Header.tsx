@@ -30,10 +30,10 @@ const Header: React.FC<HeaderProps> = ({ activeTab, toggleSidebar, toggleMobileM
     <header
       style={{
         height: 64,
-        background: theme === 'dark' ? 'rgba(13,17,23,0.92)' : 'rgba(240,244,248,0.92)',
+        background: theme === 'dark' ? 'rgba(13,17,23,0.92)' : 'rgba(250,247,242,0.92)',
         backdropFilter: 'blur(24px) saturate(180%)',
         WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-        borderBottom: theme === 'dark' ? '1px solid rgba(192,200,212,0.10)' : '1px solid rgba(90,107,125,0.14)',
+        borderBottom: theme === 'dark' ? '1px solid rgba(192,200,212,0.10)' : '1px solid rgba(201,168,76,0.25)',
         position: 'sticky',
         top: 0,
         zIndex: 40,
@@ -81,10 +81,10 @@ const Header: React.FC<HeaderProps> = ({ activeTab, toggleSidebar, toggleMobileM
             }}
           />
           <div>
-            <h2 style={{ fontSize: 18, fontWeight: 800, color: '#F0F4F8', letterSpacing: '-0.03em', lineHeight: 1.2, margin: 0 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 800, color: theme === 'dark' ? '#F0F4F8' : '#5A4A3A', letterSpacing: '-0.03em', lineHeight: 1.2, margin: 0 }}>
               {t[activeTab as keyof typeof t] as string || activeTab}
             </h2>
-            <p style={{ fontSize: 10, fontWeight: 600, color: 'rgba(192,200,212,0.4)', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>
+            <p style={{ fontSize: 10, fontWeight: 600, color: theme === 'dark' ? 'rgba(192,200,212,0.4)' : 'rgba(201,168,76,0.6)', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>
               Espace de Gestion
             </p>
           </div>
@@ -96,7 +96,9 @@ const Header: React.FC<HeaderProps> = ({ activeTab, toggleSidebar, toggleMobileM
         {/* Search bar */}
         <div className="hidden lg:flex" style={{
           display: 'flex', alignItems: 'center', gap: 10,
-          background: 'rgba(28,36,46,0.8)', border: '1px solid rgba(192,200,212,0.12)', borderRadius: 12,
+          background: theme === 'dark' ? 'rgba(28,36,46,0.8)' : 'rgba(250,247,242,0.8)', 
+          border: theme === 'dark' ? '1px solid rgba(192,200,212,0.12)' : '1px solid rgba(201,168,76,0.25)', 
+          borderRadius: 12,
           padding: '0 16px', height: 38, width: 260, transition: 'all 0.2s',
         }}
           onFocus={() => {}}
@@ -127,12 +129,12 @@ const Header: React.FC<HeaderProps> = ({ activeTab, toggleSidebar, toggleMobileM
             width: 40, height: 40, borderRadius: '50%',
             background: theme === 'dark'
               ? 'rgba(201,168,76,0.10)'
-              : 'rgba(90,107,125,0.10)',
+              : 'rgba(201,168,76,0.12)',
             border: theme === 'dark'
               ? '1px solid rgba(201,168,76,0.25)'
-              : '1px solid rgba(90,107,125,0.25)',
+              : '1px solid rgba(201,168,76,0.30)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: theme === 'dark' ? 'var(--gold)' : 'var(--silver-300)',
+            color: theme === 'dark' ? 'var(--gold)' : '#C9A84C',
             cursor: 'pointer', flexShrink: 0,
             transition: 'all 0.25s',
           }}
@@ -172,9 +174,10 @@ const Header: React.FC<HeaderProps> = ({ activeTab, toggleSidebar, toggleMobileM
             whileTap={shouldReduce ? {} : { scale: 0.9 }}
             style={{
               width: 40, height: 40, borderRadius: '50%',
-              background: 'rgba(192,200,212,0.06)', border: '1px solid rgba(192,200,212,0.10)',
+              background: theme === 'dark' ? 'rgba(192,200,212,0.06)' : 'rgba(201,168,76,0.08)', 
+              border: theme === 'dark' ? '1px solid rgba(192,200,212,0.10)' : '1px solid rgba(201,168,76,0.20)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--silver-300)', cursor: 'pointer', position: 'relative',
+              color: theme === 'dark' ? 'var(--silver-300)' : '#C9A84C', cursor: 'pointer', position: 'relative',
             }}
           >
             <Bell size={17} />
@@ -266,9 +269,9 @@ const Header: React.FC<HeaderProps> = ({ activeTab, toggleSidebar, toggleMobileM
         </div>
 
         {/* User area */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingLeft: 16, borderLeft: '1px solid var(--border)', cursor: 'default' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingLeft: 16, borderLeft: theme === 'dark' ? '1px solid var(--border)' : '1px solid rgba(201,168,76,0.25)', cursor: 'default' }}>
           <div className="hidden sm:block" style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: 14, fontWeight: 700, color: '#F0F4F8', margin: 0, lineHeight: 1.3 }}>{user?.username}</p>
+            <p style={{ fontSize: 14, fontWeight: 700, color: theme === 'dark' ? '#F0F4F8' : '#5A4A3A', margin: 0, lineHeight: 1.3 }}>{user?.username}</p>
             <span className={user?.role === 'admin' ? 'badge badge-platinum' : 'badge badge-info'} style={{ fontSize: 10, padding: '2px 8px', marginTop: 3 }}>
               {user?.role}
             </span>
@@ -277,11 +280,11 @@ const Header: React.FC<HeaderProps> = ({ activeTab, toggleSidebar, toggleMobileM
             whileHover={shouldReduce ? {} : { scale: 1.05 }}
             style={{
               width: 40, height: 40,
-              background: 'linear-gradient(135deg, rgba(192,200,212,0.15), rgba(90,107,125,0.2))',
-              border: '1px solid rgba(192,200,212,0.25)',
+              background: theme === 'dark' ? 'linear-gradient(135deg, rgba(192,200,212,0.15), rgba(90,107,125,0.2))' : 'linear-gradient(135deg, rgba(201,168,76,0.15), rgba(201,168,76,0.2))',
+              border: theme === 'dark' ? '1px solid rgba(192,200,212,0.25)' : '1px solid rgba(201,168,76,0.30)',
               borderRadius: 12,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--silver-200)',
+              color: theme === 'dark' ? 'var(--silver-200)' : '#C9A84C',
               clipPath: 'polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%)',
             }}
           >
