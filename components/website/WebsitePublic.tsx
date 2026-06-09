@@ -33,7 +33,7 @@ const WebsitePublic: React.FC = () => {
   const [lang, setLang] = useState<'fr' | 'ar'>('fr');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [lastOrderId, setLastOrderId] = useState('');
-  const [websiteTheme, setWebsiteTheme] = useState<'light' | 'dark'>('dark');
+  const [websiteTheme, setWebsiteTheme] = useState<'light' | 'dark'>('light');
   const [showCartBar, setShowCartBar] = useState(false);
   const isDark = websiteTheme === 'dark';
 
