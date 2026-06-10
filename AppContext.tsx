@@ -1417,34 +1417,72 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSilverPricePerGramState(price);
   };
 
+  // ─── IMAGE UPLOAD HELPER ─────────────────────────────────────────────────
+  const uploadOfferImage = async (
+    base64: string,
+    bucket: 'web-offers' | 'web-special-offers',
+    id: string
+  ): Promise<string | null> => {
+    try {
+      const res = await fetch(base64);
+      const blob = await res.blob();
+      const ext = blob.type.split('/')[1]?.split('+')[0] || 'jpg';
+      const path = `${id}.${ext}`;
+      const { error } = await supabase.storage.from(bucket).upload(path, blob, {
+        upsert: true,
+        contentType: blob.type,
+      });
+      if (error) { console.error('[uploadOfferImage]', error.message); return null; }
+      const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+      return data.publicUrl;
+    } catch (e) {
+      console.error('[uploadOfferImage] conversion failed', e);
+      return null;
+    }
+  };
+
+  const resolveImage = async (
+    image: string | null,
+    bucket: 'web-offers' | 'web-special-offers',
+    id: string
+  ): Promise<string | null> => {
+    if (!image) return null;
+    if (image.startsWith('data:')) return uploadOfferImage(image, bucket, id);
+    return image; // already a URL
+  };
+
   // ─── WEB OFFERS ──────────────────────────────────────────────────────────
   const addWebOffer = async (o: Omit<WebOffer, 'id' | 'createdAt'>) => {
     const id = Date.now().toString();
     const createdAt = new Date().toISOString();
+    const imageUrl = await resolveImage(o.image, 'web-offers', id);
     const { error } = await supabase.from('web_offers').insert({
-      id, name: o.name, silver_type_id: o.silverTypeId, calibre: o.calibre, form: o.form,
+      id, name: o.name, image_url: imageUrl,
+      silver_type_id: o.silverTypeId, calibre: o.calibre, form: o.form,
       pricing_mode: o.pricingMode, weight: o.weight, price_per_gram: o.pricePerGram,
       total_price: o.totalPrice, unit_price: o.unitPrice,
       show_quantity: o.showQuantity, quantity: o.quantity,
       is_hidden: o.isHidden, created_at: createdAt,
     });
     if (error) { console.error('[addWebOffer]', error.message); return; }
-    setWebOffers(prev => [...prev, { ...o, id, createdAt }]);
+    setWebOffers(prev => [...prev, { ...o, image: imageUrl, id, createdAt }]);
   };
 
   const updateWebOffer = async (id: string, o: Partial<WebOffer>) => {
     const existing = webOffers.find(item => item.id === id);
     if (!existing) return;
     const merged = { ...existing, ...o };
+    const imageUrl = await resolveImage(merged.image, 'web-offers', id);
     const { error } = await supabase.from('web_offers').update({
-      name: merged.name, silver_type_id: merged.silverTypeId, calibre: merged.calibre, form: merged.form,
+      name: merged.name, image_url: imageUrl,
+      silver_type_id: merged.silverTypeId, calibre: merged.calibre, form: merged.form,
       pricing_mode: merged.pricingMode, weight: merged.weight, price_per_gram: merged.pricePerGram,
       total_price: merged.totalPrice, unit_price: merged.unitPrice,
       show_quantity: merged.showQuantity, quantity: merged.quantity,
       is_hidden: merged.isHidden,
     }).eq('id', id);
     if (error) { console.error('[updateWebOffer]', error.message); return; }
-    setWebOffers(prev => prev.map(item => item.id === id ? merged : item));
+    setWebOffers(prev => prev.map(item => item.id === id ? { ...merged, image: imageUrl } : item));
   };
 
   const deleteWebOffer = async (id: string) => {
@@ -1457,8 +1495,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addWebSpecialOffer = async (o: Omit<WebSpecialOffer, 'id' | 'createdAt'>) => {
     const id = Date.now().toString();
     const createdAt = new Date().toISOString();
+    const imageUrl = await resolveImage(o.image, 'web-special-offers', id);
     const { error } = await supabase.from('web_special_offers').insert({
-      id, name: o.name, silver_type_id: o.silverTypeId, calibre: o.calibre, form: o.form,
+      id, name: o.name, image_url: imageUrl,
+      silver_type_id: o.silverTypeId, calibre: o.calibre, form: o.form,
       pricing_mode: o.pricingMode, weight: o.weight, price_per_gram: o.pricePerGram,
       unit_price: o.unitPrice, original_price: o.originalPrice, special_price: o.specialPrice,
       show_quantity: o.showQuantity, quantity: o.quantity,
@@ -1467,15 +1507,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       created_at: createdAt,
     });
     if (error) { console.error('[addWebSpecialOffer]', error.message); return; }
-    setWebSpecialOffers(prev => [...prev, { ...o, id, createdAt }]);
+    setWebSpecialOffers(prev => [...prev, { ...o, image: imageUrl, id, createdAt }]);
   };
 
   const updateWebSpecialOffer = async (id: string, o: Partial<WebSpecialOffer>) => {
     const existing = webSpecialOffers.find(item => item.id === id);
     if (!existing) return;
     const merged = { ...existing, ...o };
+    const imageUrl = await resolveImage(merged.image, 'web-special-offers', id);
     const { error } = await supabase.from('web_special_offers').update({
-      name: merged.name, silver_type_id: merged.silverTypeId, calibre: merged.calibre, form: merged.form,
+      name: merged.name, image_url: imageUrl,
+      silver_type_id: merged.silverTypeId, calibre: merged.calibre, form: merged.form,
       pricing_mode: merged.pricingMode, weight: merged.weight, price_per_gram: merged.pricePerGram,
       unit_price: merged.unitPrice, original_price: merged.originalPrice, special_price: merged.specialPrice,
       show_quantity: merged.showQuantity, quantity: merged.quantity,
@@ -1483,7 +1525,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       start_date: merged.startDate, start_hour: merged.startHour, end_date: merged.endDate, end_hour: merged.endHour,
     }).eq('id', id);
     if (error) { console.error('[updateWebSpecialOffer]', error.message); return; }
-    setWebSpecialOffers(prev => prev.map(item => item.id === id ? merged : item));
+    setWebSpecialOffers(prev => prev.map(item => item.id === id ? { ...merged, image: imageUrl } : item));
   };
 
   const deleteWebSpecialOffer = async (id: string) => {

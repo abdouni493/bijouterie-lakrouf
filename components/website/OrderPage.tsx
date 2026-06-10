@@ -124,10 +124,26 @@ const OrderPage: React.FC<OrderPageProps> = ({ lang, cart, setCart, setCurrentPa
   }[lang];
 
   const selectedWilaya = ALGERIA_WILAYAS.find(w => w.code === form.wilayaCode);
-  const availableCompanies = webDeliveryCompanies.filter(c => c.wilayas.some(w => w.wilayaCode === form.wilayaCode));
+
+  // Companies that cover the selected wilaya AND commune (if commune is already chosen)
+  const availableCompanies = webDeliveryCompanies.filter(c =>
+    c.wilayas.some(w =>
+      w.wilayaCode === form.wilayaCode &&
+      (w.communes.length === 0 || !form.commune || w.communes.includes(form.commune))
+    )
+  );
+
   const selectedCompany = webDeliveryCompanies.find(c => c.id === form.deliveryCompanyId);
-  const wilayaPrice = selectedCompany?.wilayas.find(w => w.wilayaCode === form.wilayaCode);
-  const deliveryPrice = wilayaPrice ? (form.deliveryType === 'home' ? wilayaPrice.toHome : wilayaPrice.toBureau) : 0;
+
+  // Find the most specific price entry: match both wilaya AND commune
+  const wilayaPrice = selectedCompany?.wilayas.find(w =>
+    w.wilayaCode === form.wilayaCode &&
+    (w.communes.length === 0 || !form.commune || w.communes.includes(form.commune))
+  ) ?? selectedCompany?.wilayas.find(w => w.wilayaCode === form.wilayaCode);
+
+  const deliveryPrice = wilayaPrice
+    ? (form.deliveryType === 'home' ? wilayaPrice.toHome : wilayaPrice.toBureau)
+    : 0;
 
   const getItemPrice = (item: CartItem) => {
     if (item.isSpecial) return (item.offer.specialPrice || 0) * item.quantity;
