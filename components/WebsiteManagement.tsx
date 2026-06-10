@@ -4,8 +4,10 @@ import { useApp } from '../AppContext';
 import {
   Globe, Star, Truck, Phone, Settings as SettingsIcon,
   Plus, Eye, EyeOff, Edit2, Trash2, Link, X, Save,
-  Image as ImageIcon, Play, Square, Gem,
-  Facebook, Instagram, Mail, PhoneCall, MapPin, Send
+  Image as ImageIcon, Gem, Facebook, Instagram, Mail,
+  PhoneCall, MapPin, Send, Clock, Tag, Package,
+  ToggleLeft, ToggleRight, CheckCircle, AlertCircle,
+  TrendingUp, ShoppingBag, Zap,
 } from 'lucide-react';
 import { WebOffer, WebSpecialOffer, WebDeliveryCompany, WebWilayaPrice } from '../types';
 import { ALGERIA_WILAYAS } from '../constants/algeriaWilayas';
@@ -13,14 +15,15 @@ import { ALGERIA_WILAYAS } from '../constants/algeriaWilayas';
 type SubTab = 'offers' | 'specialOffers' | 'delivery' | 'contacts' | 'siteSettings';
 
 const SUBTABS: { id: SubTab; label: string; icon: React.ElementType }[] = [
-  { id: 'offers', label: 'Offres', icon: Gem },
-  { id: 'specialOffers', label: 'Offres Spéciales', icon: Star },
+  { id: 'offers', label: 'Offres', icon: ShoppingBag },
+  { id: 'specialOffers', label: 'Offres Spéciales', icon: Zap },
   { id: 'delivery', label: 'Livraison', icon: Truck },
   { id: 'contacts', label: 'Contacts', icon: Phone },
-  { id: 'siteSettings', label: 'Paramètres Site', icon: SettingsIcon },
+  { id: 'siteSettings', label: 'Paramètres', icon: SettingsIcon },
 ];
 
-// ---------- Helpers ----------
+// ─── helpers ─────────────────────────────────────────────────────────────────
+
 function toBase64(file: File): Promise<string> {
   return new Promise(res => {
     const r = new FileReader();
@@ -29,231 +32,276 @@ function toBase64(file: File): Promise<string> {
   });
 }
 
-function Toast({ msg, onClose }: { msg: string; onClose: () => void }) {
-  return (
-    <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999, background: 'var(--card-bg)', border: '1px solid var(--border)', color: 'var(--silver-100)', padding: '12px 20px', borderRadius: 16, display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
-      <span style={{ fontSize: 13, fontWeight: 700 }}>{msg}</span>
-      <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--silver-300)', cursor: 'pointer' }}><X size={14} /></button>
-    </div>
-  );
-}
-
-// ---------- Toggle ----------
-const Toggle = ({ on, onToggle, label }: { on: boolean; onToggle: () => void; label: string }) => (
-  <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
-    <div onClick={onToggle} style={{
-      width: 38, height: 21, borderRadius: 11, flexShrink: 0, position: 'relative', cursor: 'pointer',
-      background: on ? '#C9A84C' : 'var(--border)', transition: 'background 0.2s',
+const Toggle: React.FC<{ on: boolean; onToggle: () => void; label: string }> = ({ on, onToggle, label }) => (
+  <label
+    onClick={onToggle}
+    style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}
+  >
+    <div style={{
+      width: 42, height: 23, borderRadius: 12, flexShrink: 0, position: 'relative',
+      background: on ? 'linear-gradient(135deg, #C9A84C, #E8C96A)' : 'var(--border)',
+      transition: 'background 0.25s', boxShadow: on ? '0 0 12px rgba(201,168,76,0.35)' : 'none',
     }}>
-      <div style={{ width: 17, height: 17, background: 'white', borderRadius: '50%', position: 'absolute', top: 2, left: on ? 19 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }} />
+      <div style={{
+        width: 19, height: 19, background: 'white', borderRadius: '50%',
+        position: 'absolute', top: 2, left: on ? 21 : 2,
+        transition: 'left 0.25s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+      }} />
     </div>
-    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--silver-200)' }}>{label}</span>
+    <span style={{ fontSize: 13, fontWeight: 600, color: on ? 'var(--silver-100)' : 'var(--silver-300)' }}>{label}</span>
   </label>
 );
 
-// ---------- OfferFormModal ----------
-interface OfferFormModalProps {
+const Toast: React.FC<{ msg: string; type?: 'success' | 'error'; onClose: () => void }> = ({ msg, type = 'success', onClose }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+    animate={{ opacity: 1, y: 0, scale: 1 }}
+    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+    style={{
+      position: 'fixed', bottom: 28, right: 28, zIndex: 9999,
+      background: 'var(--card-bg)', border: `1px solid ${type === 'success' ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)'}`,
+      color: type === 'success' ? '#10b981' : '#ef4444',
+      padding: '12px 20px', borderRadius: 14,
+      display: 'flex', alignItems: 'center', gap: 10,
+      boxShadow: '0 8px 40px rgba(0,0,0,0.5)',
+    }}
+  >
+    {type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+    <span style={{ fontSize: 13, fontWeight: 700 }}>{msg}</span>
+    <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', marginLeft: 4, opacity: 0.7 }}>
+      <X size={13} />
+    </button>
+  </motion.div>
+);
+
+const StatCard: React.FC<{ icon: React.ElementType; label: string; value: string | number; color?: string }> = ({
+  icon: Icon, label, value, color = 'var(--gold)',
+}) => (
+  <div className="lux-card" style={{ padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+    <div style={{
+      width: 44, height: 44, borderRadius: 14, flexShrink: 0,
+      background: `${color}1A`, border: `1px solid ${color}33`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <Icon size={20} color={color} />
+    </div>
+    <div>
+      <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--silver-400)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>{label}</p>
+      <p style={{ fontSize: 22, fontWeight: 800, color: 'var(--silver-100)', margin: 0, lineHeight: 1.2 }}>{value}</p>
+    </div>
+  </div>
+);
+
+// ─── image upload area ─────────────────────────────────────────────────────
+
+const ImageUpload: React.FC<{ image: string | null; onChange: (b64: string | null) => void }> = ({ image, onChange }) => {
+  const ref = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+
+  const handleFile = async (file: File) => {
+    const b64 = await toBase64(file);
+    onChange(b64);
+  };
+
+  return (
+    <div>
+      <label className="lux-label">Image</label>
+      <div
+        onClick={() => ref.current?.click()}
+        onDragOver={e => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={e => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
+        style={{
+          marginTop: 8, height: 190, borderRadius: 14, overflow: 'hidden', cursor: 'pointer',
+          background: dragging ? 'rgba(201,168,76,0.08)' : 'rgba(255,255,255,0.03)',
+          border: `2px dashed ${dragging ? 'var(--gold)' : 'var(--border)'}`,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          transition: 'all 0.2s', position: 'relative',
+        }}
+      >
+        {image ? (
+          <>
+            <img src={image} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+            <div style={{
+              position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
+              opacity: 0, transition: 'opacity 0.2s',
+            }}
+              className="img-upload-hover"
+            >
+              <ImageIcon size={24} color="white" />
+              <span style={{ fontSize: 11, color: 'white', fontWeight: 700 }}>Changer l'image</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <ImageIcon size={28} color="var(--silver-400)" />
+            <span style={{ fontSize: 12, color: 'var(--silver-400)', marginTop: 8, fontWeight: 600 }}>Cliquer ou glisser-déposer</span>
+          </>
+        )}
+      </div>
+      <input ref={ref} type="file" accept="image/*" style={{ display: 'none' }}
+        onChange={async e => { if (e.target.files?.[0]) { handleFile(e.target.files[0]); } }} />
+      {image && (
+        <button
+          onClick={e => { e.stopPropagation(); onChange(null); }}
+          className="btn-outline"
+          style={{ marginTop: 6, width: '100%', padding: '6px 0', borderRadius: 8, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+        >
+          Retirer l'image
+        </button>
+      )}
+    </div>
+  );
+};
+
+// ─── OFFER FORM MODAL ─────────────────────────────────────────────────────────
+
+const OFFER_EMPTY = {
+  name: '', image: null as string | null,
+  silverTypeId: '', calibre: '', form: '',
+  pricingMode: 'perGram' as 'perGram' | 'alaPiece',
+  weight: 0, pricePerGram: 0, totalPrice: 0, unitPrice: 0,
+  showQuantity: false, quantity: 0, showWeight: false, isHidden: false,
+};
+
+interface OfferModalProps {
   open: boolean;
   onClose: () => void;
-  editing: WebOffer | WebSpecialOffer | null;
-  isSpecial: boolean;
-  onSave: (payload: any) => void;
+  editing: WebOffer | null;
+  onSave: (payload: Omit<WebOffer, 'id' | 'createdAt'>) => void;
   silverTypes: any[];
   shapes: string[];
 }
 
-const EMPTY_FORM = {
-  name: '', image: null as string | null, silverTypeId: '', calibre: '', form: '',
-  pricingMode: 'perGram' as 'perGram' | 'alaPiece',
-  weight: 0, pricePerGram: 0, totalPrice: 0, unitPrice: 0,
-  showQuantity: false, quantity: 0, showWeight: false,
-  isHidden: false,
-  // special-only:
-  originalPrice: 0, specialPrice: 0, isActive: false,
-  startDate: '', startHour: '', endDate: '', endHour: '',
-};
-
-const OfferFormModal: React.FC<OfferFormModalProps> = ({ open, onClose, editing, isSpecial, onSave, silverTypes, shapes }) => {
-  const [form, setForm] = useState({ ...EMPTY_FORM });
-  const fileRef = useRef<HTMLInputElement>(null);
+const OfferModal: React.FC<OfferModalProps> = ({ open, onClose, editing, onSave, silverTypes, shapes }) => {
+  const [f, setF] = useState({ ...OFFER_EMPTY });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (editing) {
-      const o = editing as any;
-      setForm({
-        name: o.name ?? '',
-        image: o.image ?? null,
-        silverTypeId: o.silverTypeId ?? '',
-        calibre: o.calibre ?? '',
-        form: o.form ?? '',
-        pricingMode: o.pricingMode ?? 'perGram',
-        weight: o.weight ?? 0,
-        pricePerGram: o.pricePerGram ?? 0,
-        totalPrice: o.totalPrice ?? 0,
-        unitPrice: o.unitPrice ?? 0,
-        showQuantity: o.showQuantity ?? false,
-        quantity: o.quantity ?? 0,
-        showWeight: o.showWeight ?? false,
-        isHidden: o.isHidden ?? false,
-        originalPrice: o.originalPrice ?? 0,
-        specialPrice: o.specialPrice ?? 0,
-        isActive: o.isActive ?? false,
-        startDate: o.startDate ?? '',
-        startHour: o.startHour ?? '',
-        endDate: o.endDate ?? '',
-        endHour: o.endHour ?? '',
+      setF({
+        name: editing.name, image: editing.image,
+        silverTypeId: editing.silverTypeId, calibre: editing.calibre, form: editing.form,
+        pricingMode: editing.pricingMode,
+        weight: editing.weight ?? 0, pricePerGram: editing.pricePerGram ?? 0,
+        totalPrice: editing.totalPrice, unitPrice: editing.unitPrice ?? 0,
+        showQuantity: editing.showQuantity, quantity: editing.quantity ?? 0,
+        showWeight: editing.showWeight, isHidden: editing.isHidden,
       });
     } else {
-      setForm({ ...EMPTY_FORM });
+      setF({ ...OFFER_EMPTY });
     }
+    setErrors({});
   }, [editing, open]);
 
-  const calcTotal = (f: typeof form) =>
-    f.pricingMode === 'perGram' ? (f.weight || 0) * (f.pricePerGram || 0) : f.unitPrice || 0;
+  const autoTotal = f.pricingMode === 'perGram' ? (f.weight || 0) * (f.pricePerGram || 0) : f.unitPrice || 0;
 
-  const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      const b64 = await toBase64(e.target.files[0]);
-      setForm(f => ({ ...f, image: b64 }));
-    }
-  };
-
-  const handleSilverChange = (id: string) => {
-    const st = silverTypes.find((s: any) => s.id === id);
-    setForm(f => ({ ...f, silverTypeId: id, calibre: st?.calibre || '' }));
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!f.name.trim()) e.name = 'Nom requis';
+    if (!f.silverTypeId) e.silverTypeId = 'Type d\'argent requis';
+    if (f.pricingMode === 'perGram' && !f.weight) e.weight = 'Poids requis';
+    if (f.pricingMode === 'perGram' && !f.pricePerGram) e.pricePerGram = 'Prix/g requis';
+    if (f.pricingMode === 'alaPiece' && !f.unitPrice) e.unitPrice = 'Prix unitaire requis';
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
   const handleSave = () => {
-    onSave(form);
+    if (!validate()) return;
+    const total = f.pricingMode === 'perGram' ? (f.weight || 0) * (f.pricePerGram || 0) : f.unitPrice || 0;
+    onSave({ ...f, totalPrice: total });
     onClose();
   };
 
-  const title = isSpecial
-    ? (editing ? 'Modifier l\'offre spéciale' : 'Nouvelle offre spéciale')
-    : (editing ? 'Modifier l\'offre' : 'Nouvelle offre');
-  const subtitle = isSpecial ? 'Offres promotionnelles' : 'Gestion des offres produit';
+  const setSilver = (id: string) => {
+    const st = silverTypes.find((s: any) => s.id === id);
+    setF(prev => ({ ...prev, silverTypeId: id, calibre: st?.calibre || '' }));
+  };
+
+  const ErrMsg = ({ field }: { field: string }) =>
+    errors[field] ? <span style={{ fontSize: 11, color: '#ef4444', marginTop: 3, display: 'block' }}>{errors[field]}</span> : null;
 
   return (
     <AnimatePresence>
       {open && (
-        <motion.div
-          key="offer-modal-overlay"
-          className="modal-overlay"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-        >
+        <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
           <motion.div
-            key={editing ? `edit-${(editing as any).id}` : `new-${isSpecial}`}
             className="modal-box"
-            style={{
-              maxWidth: 760,
-              width: '95vw',
-              maxHeight: '90vh',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-            }}
+            style={{ maxWidth: 780, width: '95vw', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
             initial={{ opacity: 0, y: 32, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.97 }}
             transition={{ type: 'spring', stiffness: 380, damping: 32 }}
             onClick={e => e.stopPropagation()}
           >
-            {/* Sticky Header */}
+            {/* Header */}
             <div className="modal-header" style={{ flexShrink: 0 }}>
               <div>
                 <div className="silver-line" style={{ marginBottom: 6 }} />
                 <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--silver-100)', letterSpacing: '-0.03em', margin: 0 }}>
-                  {title}
+                  {editing ? 'Modifier l\'offre' : 'Nouvelle Offre'}
                 </h2>
-                <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--silver-300)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '4px 0 0' }}>{subtitle}</p>
+                <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--silver-300)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '4px 0 0' }}>
+                  Gestion des offres produit
+                </p>
               </div>
               <button onClick={onClose} className="btn-icon"><X size={18} /></button>
             </div>
 
-            {/* Scrollable Body */}
-            <div className="modal-body" style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
-              {/* 2-col grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 24, alignItems: 'start' }}>
-                {/* LEFT: image + name */}
+            {/* Body */}
+            <div className="modal-body" style={{ overflowY: 'auto', flex: 1 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: 24, alignItems: 'start' }}>
+                {/* Left: image + name */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {/* Image upload square */}
+                  <ImageUpload image={f.image} onChange={img => setF(prev => ({ ...prev, image: img }))} />
                   <div>
-                    <label className="lux-label">Image</label>
-                    <div
-                      onClick={() => fileRef.current?.click()}
-                      style={{
-                        marginTop: 8,
-                        height: 220,
-                        borderRadius: 14,
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1.5px dashed var(--border)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        overflow: 'hidden',
-                        cursor: 'pointer',
-                        transition: 'border-color 0.2s',
-                        position: 'relative',
-                      }}
-                    >
-                      {form.image ? (
-                        <img src={form.image} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} alt="" />
-                      ) : (
-                        <>
-                          <ImageIcon size={32} color="var(--silver-400)" />
-                          <span style={{ fontSize: 12, color: 'var(--silver-400)', marginTop: 8, fontWeight: 600 }}>Cliquer pour choisir</span>
-                        </>
-                      )}
-                      {form.image && (
-                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0)', transition: 'background 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        </div>
-                      )}
-                    </div>
-                    <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImage} />
-                    {form.image && (
-                      <button
-                        onClick={() => setForm(f => ({ ...f, image: null }))}
-                        className="btn-outline"
-                        style={{ marginTop: 6, width: '100%', padding: '6px 0', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
-                      >
-                        Retirer l'image
-                      </button>
-                    )}
-                  </div>
-                  {/* Name */}
-                  <div>
-                    <label className="lux-label">Nom</label>
-                    <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} placeholder="Nom de l'offre" />
+                    <label className="lux-label">Nom de l'offre</label>
+                    <input
+                      value={f.name}
+                      onChange={e => setF(prev => ({ ...prev, name: e.target.value }))}
+                      className="lux-input"
+                      style={{ marginTop: 6, borderColor: errors.name ? '#ef4444' : undefined }}
+                      placeholder="Ex: Bague 925 Rosace"
+                    />
+                    <ErrMsg field="name" />
                   </div>
                 </div>
 
-                {/* RIGHT: all other fields */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {/* Silver type */}
-                  <div>
-                    <label className="lux-label">Type d'argent</label>
-                    <select value={form.silverTypeId} onChange={e => handleSilverChange(e.target.value)} className="lux-select" style={{ marginTop: 6 }}>
-                      <option value="">-- Choisir --</option>
-                      {silverTypes.filter((s: any) => !s.isCassie).map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
+                {/* Right: all fields */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                    <div>
+                      <label className="lux-label">Type d'argent</label>
+                      <select
+                        value={f.silverTypeId} onChange={e => setSilver(e.target.value)}
+                        className="lux-select" style={{ marginTop: 6, borderColor: errors.silverTypeId ? '#ef4444' : undefined }}
+                      >
+                        <option value="">-- Choisir --</option>
+                        {silverTypes.filter((s: any) => !s.isCassie).map((s: any) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                      <ErrMsg field="silverTypeId" />
+                    </div>
+                    <div>
+                      <label className="lux-label">Calibre</label>
+                      <input
+                        value={f.calibre} onChange={e => setF(prev => ({ ...prev, calibre: e.target.value }))}
+                        className="lux-input" style={{ marginTop: 6 }} placeholder="Ex: 925"
+                      />
+                    </div>
                   </div>
-                  {/* Calibre */}
-                  <div>
-                    <label className="lux-label">Calibre</label>
-                    <input value={form.calibre} onChange={e => setForm(f => ({ ...f, calibre: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                  </div>
-                  {/* Shape */}
+
                   <div>
                     <label className="lux-label">Forme</label>
-                    <select value={form.form} onChange={e => setForm(f => ({ ...f, form: e.target.value }))} className="lux-select" style={{ marginTop: 6 }}>
-                      <option value="">-- Choisir --</option>
+                    <select value={f.form} onChange={e => setF(prev => ({ ...prev, form: e.target.value }))} className="lux-select" style={{ marginTop: 6 }}>
+                      <option value="">-- Choisir une forme --</option>
                       {shapes.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
+
                   {/* Pricing mode */}
                   <div>
                     <label className="lux-label">Mode de tarification</label>
@@ -261,12 +309,12 @@ const OfferFormModal: React.FC<OfferFormModalProps> = ({ open, onClose, editing,
                       {(['perGram', 'alaPiece'] as const).map(m => (
                         <button
                           key={m}
-                          onClick={() => setForm(f => ({ ...f, pricingMode: m }))}
+                          onClick={() => setF(prev => ({ ...prev, pricingMode: m }))}
                           style={{
-                            flex: 1, padding: '8px 0', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                            background: form.pricingMode === m ? 'rgba(212,175,55,0.15)' : 'transparent',
-                            border: `1px solid ${form.pricingMode === m ? 'var(--gold)' : 'var(--border)'}`,
-                            color: form.pricingMode === m ? 'var(--gold)' : 'var(--silver-300)',
+                            flex: 1, padding: '10px 0', borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                            background: f.pricingMode === m ? 'rgba(201,168,76,0.18)' : 'transparent',
+                            border: `1.5px solid ${f.pricingMode === m ? 'var(--gold)' : 'var(--border)'}`,
+                            color: f.pricingMode === m ? 'var(--gold)' : 'var(--silver-300)',
                             transition: 'all 0.2s',
                           }}
                         >
@@ -276,61 +324,71 @@ const OfferFormModal: React.FC<OfferFormModalProps> = ({ open, onClose, editing,
                     </div>
                   </div>
 
-                  {/* Pricing fields — animated switch */}
+                  {/* Pricing fields */}
                   <AnimatePresence mode="wait">
-                    {form.pricingMode === 'perGram' ? (
-                      <motion.div
-                        key="per-gram"
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.18 }}
+                    {f.pricingMode === 'perGram' ? (
+                      <motion.div key="pg" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}
                         style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}
                       >
                         <div>
                           <label className="lux-label">Poids (g)</label>
-                          <input type="number" value={form.weight} onChange={e => setForm(f => ({ ...f, weight: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
+                          <input
+                            type="number" value={f.weight || ''}
+                            onChange={e => setF(prev => ({ ...prev, weight: +e.target.value }))}
+                            className="lux-input" style={{ marginTop: 6, borderColor: errors.weight ? '#ef4444' : undefined }}
+                            placeholder="0.00"
+                          />
+                          <ErrMsg field="weight" />
                         </div>
                         <div>
-                          <label className="lux-label">Prix/g (DA)</label>
-                          <input type="number" value={form.pricePerGram} onChange={e => setForm(f => ({ ...f, pricePerGram: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
+                          <label className="lux-label">Prix / g (DA)</label>
+                          <input
+                            type="number" value={f.pricePerGram || ''}
+                            onChange={e => setF(prev => ({ ...prev, pricePerGram: +e.target.value }))}
+                            className="lux-input" style={{ marginTop: 6, borderColor: errors.pricePerGram ? '#ef4444' : undefined }}
+                            placeholder="0"
+                          />
+                          <ErrMsg field="pricePerGram" />
                         </div>
                         <div style={{ gridColumn: '1/-1' }}>
-                          <label className="lux-label">Total (DA) — auto</label>
-                          <input
-                            type="number"
-                            value={form.totalPrice || calcTotal(form)}
-                            onChange={e => setForm(f => ({ ...f, totalPrice: +e.target.value }))}
-                            className="lux-input"
-                            style={{ marginTop: 6 }}
-                            placeholder={`Auto: ${calcTotal(form).toFixed(0)}`}
-                          />
+                          <label className="lux-label">Total (DA)</label>
+                          <div style={{
+                            marginTop: 6, padding: '12px 16px', borderRadius: 12,
+                            background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.25)',
+                            fontSize: 18, fontWeight: 800, color: 'var(--gold)',
+                          }}>
+                            {autoTotal.toLocaleString()} DA
+                          </div>
                         </div>
                       </motion.div>
                     ) : (
-                      <motion.div
-                        key="ala-piece"
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.18 }}
-                      >
+                      <motion.div key="ap" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
                         <label className="lux-label">Prix unitaire (DA)</label>
-                        <input type="number" value={form.unitPrice} onChange={e => setForm(f => ({ ...f, unitPrice: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
+                        <input
+                          type="number" value={f.unitPrice || ''}
+                          onChange={e => setF(prev => ({ ...prev, unitPrice: +e.target.value }))}
+                          className="lux-input" style={{ marginTop: 6, borderColor: errors.unitPrice ? '#ef4444' : undefined }}
+                          placeholder="0"
+                        />
+                        <ErrMsg field="unitPrice" />
                       </motion.div>
                     )}
                   </AnimatePresence>
 
                   {/* Toggles */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    <Toggle on={form.showQuantity} onToggle={() => setForm(f => ({ ...f, showQuantity: !f.showQuantity }))} label="Afficher les quantités" />
-                    <Toggle on={form.showWeight} onToggle={() => setForm(f => ({ ...f, showWeight: !f.showWeight }))} label="Afficher le poids sur la carte" />
-                    <Toggle on={form.isHidden} onToggle={() => setForm(f => ({ ...f, isHidden: !f.isHidden }))} label="Masquer l'offre" />
+                  <div style={{
+                    display: 'flex', flexDirection: 'column', gap: 12, padding: '16px',
+                    background: 'rgba(255,255,255,0.03)', borderRadius: 14, border: '1px solid var(--border)',
+                  }}>
+                    <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--silver-300)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>Options d'affichage</p>
+                    <Toggle on={f.showQuantity} onToggle={() => setF(prev => ({ ...prev, showQuantity: !prev.showQuantity }))} label="Afficher la quantité" />
+                    <Toggle on={f.showWeight} onToggle={() => setF(prev => ({ ...prev, showWeight: !prev.showWeight }))} label="Afficher le poids sur la carte" />
+                    <Toggle on={f.isHidden} onToggle={() => setF(prev => ({ ...prev, isHidden: !prev.isHidden }))} label="Masquer l'offre sur le site" />
                   </div>
 
-                  {/* Quantity — animated */}
+                  {/* Quantity (conditional) */}
                   <AnimatePresence>
-                    {form.showQuantity && (
+                    {f.showQuantity && (
                       <motion.div
                         key="qty"
                         initial={{ opacity: 0, height: 0 }}
@@ -340,64 +398,24 @@ const OfferFormModal: React.FC<OfferFormModalProps> = ({ open, onClose, editing,
                         style={{ overflow: 'hidden' }}
                       >
                         <label className="lux-label">Quantité disponible</label>
-                        <input type="number" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
+                        <input
+                          type="number" value={f.quantity || ''}
+                          onChange={e => setF(prev => ({ ...prev, quantity: +e.target.value }))}
+                          className="lux-input" style={{ marginTop: 6 }}
+                          placeholder="0"
+                        />
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
               </div>
-
-              {/* Special-offer-only fields */}
-              {isSpecial && (
-                <>
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20 }}>
-                    <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 16px' }}>Paramètres promotionnels</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                      <div>
-                        <label className="lux-label">Prix original (DA)</label>
-                        <input
-                          type="number"
-                          value={form.originalPrice}
-                          onChange={e => setForm(f => ({ ...f, originalPrice: +e.target.value }))}
-                          className="lux-input"
-                          style={{ marginTop: 6 }}
-                          placeholder={form.pricingMode === 'alaPiece' ? `Auto: ${form.unitPrice}` : `Auto: ${(form.weight * form.pricePerGram).toFixed(0)}`}
-                        />
-                      </div>
-                      <div>
-                        <label className="lux-label">Prix spécial (DA)</label>
-                        <input type="number" value={form.specialPrice} onChange={e => setForm(f => ({ ...f, specialPrice: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                      </div>
-                      <div>
-                        <label className="lux-label">Date début</label>
-                        <input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                      </div>
-                      <div>
-                        <label className="lux-label">Heure début</label>
-                        <input type="time" value={form.startHour} onChange={e => setForm(f => ({ ...f, startHour: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                      </div>
-                      <div>
-                        <label className="lux-label">Date fin</label>
-                        <input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                      </div>
-                      <div>
-                        <label className="lux-label">Heure fin</label>
-                        <input type="time" value={form.endHour} onChange={e => setForm(f => ({ ...f, endHour: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                      </div>
-                    </div>
-                    <div style={{ marginTop: 14 }}>
-                      <Toggle on={form.isActive} onToggle={() => setForm(f => ({ ...f, isActive: !f.isActive }))} label="Offre active" />
-                    </div>
-                  </div>
-                </>
-              )}
             </div>
 
-            {/* Sticky Footer */}
+            {/* Footer */}
             <div className="modal-footer" style={{ flexShrink: 0 }}>
-              <button onClick={onClose} className="btn-outline" style={{ padding: '10px 24px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Annuler</button>
-              <button onClick={handleSave} className="btn-gold" style={{ padding: '10px 24px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Save size={15} /> Enregistrer
+              <button onClick={onClose} className="btn-outline" style={{ padding: '10px 28px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Annuler</button>
+              <button onClick={handleSave} className="btn-gold" style={{ padding: '10px 28px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Save size={15} /> {editing ? 'Enregistrer' : 'Créer l\'offre'}
               </button>
             </div>
           </motion.div>
@@ -407,7 +425,483 @@ const OfferFormModal: React.FC<OfferFormModalProps> = ({ open, onClose, editing,
   );
 };
 
-// ==================== OFFERS TAB ====================
+// ─── SPECIAL OFFER FORM MODAL ─────────────────────────────────────────────────
+
+const SOFFER_EMPTY = {
+  name: '', image: null as string | null,
+  silverTypeId: '', calibre: '', form: '',
+  pricingMode: 'perGram' as 'perGram' | 'alaPiece',
+  weight: 0, pricePerGram: 0, originalPrice: 0, specialPrice: 0, unitPrice: 0,
+  showQuantity: false, quantity: 0, showWeight: false, isHidden: false, isActive: true,
+  startDate: '', startHour: '08:00', endDate: '', endHour: '23:59',
+};
+
+interface SpecialOfferModalProps {
+  open: boolean;
+  onClose: () => void;
+  editing: WebSpecialOffer | null;
+  onSave: (payload: Omit<WebSpecialOffer, 'id' | 'createdAt'>) => void;
+  silverTypes: any[];
+  shapes: string[];
+}
+
+const SpecialOfferModal: React.FC<SpecialOfferModalProps> = ({ open, onClose, editing, onSave, silverTypes, shapes }) => {
+  const [f, setF] = useState({ ...SOFFER_EMPTY });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (editing) {
+      setF({
+        name: editing.name, image: editing.image,
+        silverTypeId: editing.silverTypeId, calibre: editing.calibre, form: editing.form,
+        pricingMode: editing.pricingMode,
+        weight: editing.weight ?? 0, pricePerGram: editing.pricePerGram ?? 0,
+        originalPrice: editing.originalPrice, specialPrice: editing.specialPrice,
+        unitPrice: editing.unitPrice ?? 0,
+        showQuantity: editing.showQuantity, quantity: editing.quantity ?? 0,
+        showWeight: editing.showWeight, isHidden: editing.isHidden, isActive: editing.isActive,
+        startDate: editing.startDate, startHour: editing.startHour,
+        endDate: editing.endDate, endHour: editing.endHour,
+      });
+    } else {
+      setF({ ...SOFFER_EMPTY });
+    }
+    setErrors({});
+  }, [editing, open]);
+
+  const autoBase = f.pricingMode === 'perGram' ? (f.weight || 0) * (f.pricePerGram || 0) : f.unitPrice || 0;
+  const discountPct = f.originalPrice > 0 && f.specialPrice > 0
+    ? Math.round((f.originalPrice - f.specialPrice) / f.originalPrice * 100)
+    : 0;
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!f.name.trim()) e.name = 'Nom requis';
+    if (!f.silverTypeId) e.silverTypeId = 'Type d\'argent requis';
+    if (f.pricingMode === 'perGram' && !f.weight) e.weight = 'Poids requis';
+    if (f.pricingMode === 'perGram' && !f.pricePerGram) e.pricePerGram = 'Prix/g requis';
+    if (f.pricingMode === 'alaPiece' && !f.unitPrice) e.unitPrice = 'Prix unitaire requis';
+    if (!f.specialPrice) e.specialPrice = 'Prix spécial requis';
+    if (!f.endDate) e.endDate = 'Date de fin requise';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleSave = () => {
+    if (!validate()) return;
+    const origPrice = f.originalPrice || autoBase;
+    onSave({ ...f, originalPrice: origPrice });
+    onClose();
+  };
+
+  const setSilver = (id: string) => {
+    const st = silverTypes.find((s: any) => s.id === id);
+    setF(prev => ({ ...prev, silverTypeId: id, calibre: st?.calibre || '' }));
+  };
+
+  const ErrMsg = ({ field }: { field: string }) =>
+    errors[field] ? <span style={{ fontSize: 11, color: '#ef4444', marginTop: 3, display: 'block' }}>{errors[field]}</span> : null;
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
+          <motion.div
+            className="modal-box"
+            style={{ maxWidth: 820, width: '95vw', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+            initial={{ opacity: 0, y: 32, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.97 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="modal-header" style={{ flexShrink: 0 }}>
+              <div>
+                <div className="silver-line" style={{ marginBottom: 6 }} />
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--silver-100)', letterSpacing: '-0.03em', margin: 0 }}>
+                  {editing ? 'Modifier l\'offre spéciale' : 'Nouvelle Offre Spéciale'}
+                </h2>
+                <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--silver-300)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '4px 0 0' }}>
+                  Offres promotionnelles avec compte à rebours
+                </p>
+              </div>
+              <button onClick={onClose} className="btn-icon"><X size={18} /></button>
+            </div>
+
+            {/* Body */}
+            <div className="modal-body" style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 22 }}>
+              {/* Top row: image + base info */}
+              <div style={{ display: 'grid', gridTemplateColumns: '190px 1fr', gap: 22, alignItems: 'start' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <ImageUpload image={f.image} onChange={img => setF(prev => ({ ...prev, image: img }))} />
+                  <div>
+                    <label className="lux-label">Nom</label>
+                    <input
+                      value={f.name} onChange={e => setF(prev => ({ ...prev, name: e.target.value }))}
+                      className="lux-input" style={{ marginTop: 6, borderColor: errors.name ? '#ef4444' : undefined }}
+                      placeholder="Nom de l'offre"
+                    />
+                    <ErrMsg field="name" />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div>
+                      <label className="lux-label">Type d'argent</label>
+                      <select value={f.silverTypeId} onChange={e => setSilver(e.target.value)}
+                        className="lux-select" style={{ marginTop: 6, borderColor: errors.silverTypeId ? '#ef4444' : undefined }}>
+                        <option value="">-- Choisir --</option>
+                        {silverTypes.filter((s: any) => !s.isCassie).map((s: any) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                      <ErrMsg field="silverTypeId" />
+                    </div>
+                    <div>
+                      <label className="lux-label">Calibre</label>
+                      <input value={f.calibre} onChange={e => setF(prev => ({ ...prev, calibre: e.target.value }))}
+                        className="lux-input" style={{ marginTop: 6 }} placeholder="Ex: 925" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="lux-label">Forme</label>
+                    <select value={f.form} onChange={e => setF(prev => ({ ...prev, form: e.target.value }))} className="lux-select" style={{ marginTop: 6 }}>
+                      <option value="">-- Choisir une forme --</option>
+                      {shapes.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  {/* Pricing mode */}
+                  <div>
+                    <label className="lux-label">Mode de tarification</label>
+                    <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                      {(['perGram', 'alaPiece'] as const).map(m => (
+                        <button key={m} onClick={() => setF(prev => ({ ...prev, pricingMode: m }))} style={{
+                          flex: 1, padding: '9px 0', borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                          background: f.pricingMode === m ? 'rgba(201,168,76,0.18)' : 'transparent',
+                          border: `1.5px solid ${f.pricingMode === m ? 'var(--gold)' : 'var(--border)'}`,
+                          color: f.pricingMode === m ? 'var(--gold)' : 'var(--silver-300)', transition: 'all 0.2s',
+                        }}>
+                          {m === 'perGram' ? 'Au Gramme' : 'À la Pièce'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <AnimatePresence mode="wait">
+                    {f.pricingMode === 'perGram' ? (
+                      <motion.div key="pg" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}
+                        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div>
+                          <label className="lux-label">Poids (g)</label>
+                          <input type="number" value={f.weight || ''} onChange={e => setF(prev => ({ ...prev, weight: +e.target.value }))}
+                            className="lux-input" style={{ marginTop: 6 }} placeholder="0.00" />
+                        </div>
+                        <div>
+                          <label className="lux-label">Prix / g (DA)</label>
+                          <input type="number" value={f.pricePerGram || ''} onChange={e => setF(prev => ({ ...prev, pricePerGram: +e.target.value }))}
+                            className="lux-input" style={{ marginTop: 6 }} placeholder="0" />
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div key="ap" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
+                        <label className="lux-label">Prix unitaire (DA)</label>
+                        <input type="number" value={f.unitPrice || ''} onChange={e => setF(prev => ({ ...prev, unitPrice: +e.target.value }))}
+                          className="lux-input" style={{ marginTop: 6 }} />
+                        <ErrMsg field="unitPrice" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              {/* Promotional section */}
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Tag size={15} color="var(--gold)" />
+                    </div>
+                    <p style={{ fontSize: 12, fontWeight: 800, color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>
+                      Paramètres promotionnels
+                    </p>
+                  </div>
+                  {discountPct > 0 && (
+                    <span style={{ fontSize: 13, fontWeight: 800, color: '#ef4444', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', padding: '4px 12px', borderRadius: 8 }}>
+                      -{discountPct}% de réduction
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
+                  <div>
+                    <label className="lux-label">Prix original (DA)</label>
+                    <input
+                      type="number" value={f.originalPrice || ''}
+                      onChange={e => setF(prev => ({ ...prev, originalPrice: +e.target.value }))}
+                      className="lux-input" style={{ marginTop: 6 }}
+                      placeholder={`Auto: ${autoBase.toFixed(0)}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="lux-label">Prix spécial (DA)</label>
+                    <input
+                      type="number" value={f.specialPrice || ''}
+                      onChange={e => setF(prev => ({ ...prev, specialPrice: +e.target.value }))}
+                      className="lux-input" style={{ marginTop: 6, borderColor: errors.specialPrice ? '#ef4444' : undefined }}
+                      placeholder="0"
+                    />
+                    <ErrMsg field="specialPrice" />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+                  <div>
+                    <label className="lux-label">Date début</label>
+                    <input type="date" value={f.startDate} onChange={e => setF(prev => ({ ...prev, startDate: e.target.value }))}
+                      className="lux-input" style={{ marginTop: 6 }} />
+                  </div>
+                  <div>
+                    <label className="lux-label">Heure début</label>
+                    <input type="time" value={f.startHour} onChange={e => setF(prev => ({ ...prev, startHour: e.target.value }))}
+                      className="lux-input" style={{ marginTop: 6 }} />
+                  </div>
+                  <div>
+                    <label className="lux-label">Date fin</label>
+                    <input type="date" value={f.endDate} onChange={e => setF(prev => ({ ...prev, endDate: e.target.value }))}
+                      className="lux-input" style={{ marginTop: 6, borderColor: errors.endDate ? '#ef4444' : undefined }} />
+                    <ErrMsg field="endDate" />
+                  </div>
+                  <div>
+                    <label className="lux-label">Heure fin</label>
+                    <input type="time" value={f.endHour} onChange={e => setF(prev => ({ ...prev, endHour: e.target.value }))}
+                      className="lux-input" style={{ marginTop: 6 }} />
+                  </div>
+                </div>
+
+                <div style={{
+                  marginTop: 16, display: 'flex', flexWrap: 'wrap', gap: 16, padding: '14px 16px',
+                  background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid var(--border)',
+                }}>
+                  <Toggle on={f.isActive} onToggle={() => setF(prev => ({ ...prev, isActive: !prev.isActive }))} label="Offre active" />
+                  <Toggle on={f.showQuantity} onToggle={() => setF(prev => ({ ...prev, showQuantity: !prev.showQuantity }))} label="Afficher quantité" />
+                  <Toggle on={f.showWeight} onToggle={() => setF(prev => ({ ...prev, showWeight: !prev.showWeight }))} label="Afficher poids" />
+                  <Toggle on={f.isHidden} onToggle={() => setF(prev => ({ ...prev, isHidden: !prev.isHidden }))} label="Masquer sur le site" />
+                </div>
+
+                <AnimatePresence>
+                  {f.showQuantity && (
+                    <motion.div key="qty" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.2 }} style={{ overflow: 'hidden', marginTop: 14 }}>
+                      <label className="lux-label">Quantité disponible</label>
+                      <input type="number" value={f.quantity || ''} onChange={e => setF(prev => ({ ...prev, quantity: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} placeholder="0" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="modal-footer" style={{ flexShrink: 0 }}>
+              <button onClick={onClose} className="btn-outline" style={{ padding: '10px 28px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Annuler</button>
+              <button onClick={handleSave} className="btn-gold" style={{ padding: '10px 28px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Save size={15} /> {editing ? 'Enregistrer' : 'Créer l\'offre spéciale'}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+// ─── Offer Card ───────────────────────────────────────────────────────────────
+
+const OfferCard: React.FC<{
+  offer: WebOffer;
+  silverName: (id: string) => string;
+  onEdit: () => void;
+  onDelete: () => void;
+  onDetail: () => void;
+  onToggleHide: () => void;
+  onCopyLink: () => void;
+}> = ({ offer, silverName, onEdit, onDelete, onDetail, onToggleHide, onCopyLink }) => (
+  <motion.div
+    className="lux-card"
+    style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 0 }}
+    whileHover={{ y: -2, transition: { duration: 0.2 } }}
+    layout
+  >
+    {/* Image */}
+    <div style={{ height: 170, background: 'rgba(255,255,255,0.03)', position: 'relative', overflow: 'hidden' }}>
+      {offer.image
+        ? <img src={offer.image} alt={offer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(201,168,76,0.04)' }}>
+            <Gem size={36} color="var(--silver-400)" />
+          </div>
+      }
+      {/* Status overlay badge */}
+      <div style={{ position: 'absolute', top: 10, right: 10 }}>
+        <span style={{
+          fontSize: 10, fontWeight: 800, padding: '4px 10px', borderRadius: 20, letterSpacing: '0.06em', textTransform: 'uppercase',
+          background: offer.isHidden ? 'rgba(0,0,0,0.7)' : 'rgba(16,185,129,0.85)',
+          color: 'white', backdropFilter: 'blur(4px)',
+        }}>
+          {offer.isHidden ? 'Masqué' : 'Visible'}
+        </span>
+      </div>
+    </div>
+
+    {/* Content */}
+    <div style={{ padding: '14px 16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <h3 style={{ fontWeight: 800, color: 'var(--silver-100)', fontSize: 14, margin: 0, lineHeight: 1.3 }}>{offer.name}</h3>
+      <p style={{ fontSize: 11, color: 'var(--silver-300)', margin: 0 }}>
+        {silverName(offer.silverTypeId)} {offer.calibre ? `• ${offer.calibre}` : ''} {offer.form ? `• ${offer.form}` : ''}
+      </p>
+      <p style={{ fontSize: 15, fontWeight: 800, color: 'var(--gold)', margin: 0 }}>
+        {offer.pricingMode === 'perGram'
+          ? `${offer.totalPrice.toLocaleString()} DA`
+          : `${offer.unitPrice?.toLocaleString()} DA / pièce`}
+      </p>
+      {offer.showQuantity && offer.quantity !== undefined && (
+        <p style={{ fontSize: 11, color: 'var(--silver-400)', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Package size={11} /> {offer.quantity} en stock
+        </p>
+      )}
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: 6, marginTop: 'auto', paddingTop: 10, flexWrap: 'wrap', borderTop: '1px solid var(--border)' }}>
+        <button onClick={onDetail} className="btn-icon" title="Voir détails"><Eye size={14} /></button>
+        <button onClick={onEdit} className="btn-icon" title="Modifier"><Edit2 size={14} /></button>
+        <button onClick={onDelete} className="btn-icon danger" title="Supprimer"><Trash2 size={14} /></button>
+        <button onClick={onToggleHide} className="btn-icon" title={offer.isHidden ? 'Afficher' : 'Masquer'}>
+          {offer.isHidden ? <Eye size={14} /> : <EyeOff size={14} />}
+        </button>
+        <button onClick={onCopyLink} className="btn-icon" title="Copier le lien"><Link size={14} /></button>
+      </div>
+    </div>
+  </motion.div>
+);
+
+// ─── Special Offer Card ───────────────────────────────────────────────────────
+
+const Countdown: React.FC<{ endDate: string; endHour: string }> = ({ endDate, endHour }) => {
+  const [remaining, setRemaining] = useState('');
+  useEffect(() => {
+    const end = new Date(`${endDate}T${endHour || '23:59'}`);
+    const update = () => {
+      const diff = end.getTime() - Date.now();
+      if (diff <= 0) { setRemaining('Expiré'); return; }
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      setRemaining(d > 0 ? `${d}j ${h}h ${m}m` : `${h}h ${m}m`);
+    };
+    update();
+    const iv = setInterval(update, 30000);
+    return () => clearInterval(iv);
+  }, [endDate, endHour]);
+  const expired = remaining === 'Expiré';
+  return (
+    <span style={{
+      fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4,
+      color: expired ? 'var(--silver-400)' : '#ef4444',
+    }}>
+      <Clock size={11} /> {remaining}
+    </span>
+  );
+};
+
+const SpecialOfferCard: React.FC<{
+  offer: WebSpecialOffer;
+  silverName: (id: string) => string;
+  onEdit: () => void;
+  onDelete: () => void;
+  onDetail: () => void;
+  onToggleHide: () => void;
+  onToggleActive: () => void;
+  onCopyLink: () => void;
+}> = ({ offer, silverName, onEdit, onDelete, onDetail, onToggleHide, onToggleActive, onCopyLink }) => {
+  const discountPct = offer.originalPrice > 0 ? Math.round((offer.originalPrice - offer.specialPrice) / offer.originalPrice * 100) : 0;
+
+  return (
+    <motion.div
+      className="lux-card"
+      style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 0 }}
+      whileHover={{ y: -2, transition: { duration: 0.2 } }}
+      layout
+    >
+      {/* Image */}
+      <div style={{ height: 170, background: 'rgba(255,255,255,0.03)', position: 'relative', overflow: 'hidden' }}>
+        {offer.image
+          ? <img src={offer.image} alt={offer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(201,168,76,0.04)' }}>
+              <Star size={36} color="var(--silver-400)" />
+            </div>
+        }
+        {/* Discount badge */}
+        {discountPct > 0 && (
+          <div style={{ position: 'absolute', top: 10, left: 10 }}>
+            <span style={{ fontSize: 12, fontWeight: 800, padding: '5px 10px', borderRadius: 20, background: '#ef4444', color: 'white', letterSpacing: '0.04em' }}>
+              -{discountPct}%
+            </span>
+          </div>
+        )}
+        {/* Status */}
+        <div style={{ position: 'absolute', top: 10, right: 10 }}>
+          <span style={{
+            fontSize: 10, fontWeight: 800, padding: '4px 10px', borderRadius: 20, letterSpacing: '0.06em', textTransform: 'uppercase',
+            background: offer.isActive && !offer.isHidden ? 'rgba(201,168,76,0.85)' : 'rgba(0,0,0,0.7)',
+            color: 'white', backdropFilter: 'blur(4px)',
+          }}>
+            {offer.isHidden ? 'Masqué' : offer.isActive ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div style={{ padding: '14px 16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <h3 style={{ fontWeight: 800, color: 'var(--silver-100)', fontSize: 14, margin: 0, lineHeight: 1.3 }}>{offer.name}</h3>
+        <p style={{ fontSize: 11, color: 'var(--silver-300)', margin: 0 }}>
+          {silverName(offer.silverTypeId)} {offer.calibre ? `• ${offer.calibre}` : ''} {offer.form ? `• ${offer.form}` : ''}
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 12, textDecoration: 'line-through', color: 'var(--silver-400)' }}>
+            {offer.originalPrice.toLocaleString()} DA
+          </span>
+          <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--gold)' }}>
+            {offer.specialPrice.toLocaleString()} DA
+          </span>
+        </div>
+        {offer.endDate && <Countdown endDate={offer.endDate} endHour={offer.endHour} />}
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 6, marginTop: 'auto', paddingTop: 10, flexWrap: 'wrap', borderTop: '1px solid var(--border)' }}>
+          <button onClick={onDetail} className="btn-icon" title="Détails"><Eye size={14} /></button>
+          <button onClick={onEdit} className="btn-icon" title="Modifier"><Edit2 size={14} /></button>
+          <button onClick={onDelete} className="btn-icon danger" title="Supprimer"><Trash2 size={14} /></button>
+          <button onClick={onToggleHide} className="btn-icon" title={offer.isHidden ? 'Afficher' : 'Masquer'}>
+            {offer.isHidden ? <Eye size={14} /> : <EyeOff size={14} />}
+          </button>
+          <button
+            onClick={onToggleActive}
+            style={{
+              padding: '6px 8px', borderRadius: 8, border: `1px solid ${offer.isActive ? 'rgba(16,185,129,0.4)' : 'var(--border)'}`,
+              background: offer.isActive ? 'rgba(16,185,129,0.1)' : 'transparent',
+              color: offer.isActive ? '#10b981' : 'var(--silver-400)', cursor: 'pointer', fontSize: 10, fontWeight: 700,
+            }}
+            title={offer.isActive ? 'Désactiver' : 'Activer'}
+          >
+            {offer.isActive ? 'ON' : 'OFF'}
+          </button>
+          <button onClick={onCopyLink} className="btn-icon" title="Lien"><Link size={14} /></button>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// ─── OFFERS TAB ───────────────────────────────────────────────────────────────
+
 const OffersTab: React.FC = () => {
   const { webOffers, addWebOffer, updateWebOffer, deleteWebOffer, silverTypes, shapes } = useApp();
   const [showModal, setShowModal] = useState(false);
@@ -415,78 +909,92 @@ const OffersTab: React.FC = () => {
   const [detail, setDetail] = useState<WebOffer | null>(null);
   const [toast, setToast] = useState('');
 
-  const closeShowModal = () => { setShowModal(false); };
-  const closeDetail = () => { setDetail(null); };
-
-  const openCreate = () => { setEditing(null); setShowModal(true); };
-  const openEdit = (o: WebOffer) => { setEditing(o); setShowModal(true); };
-
-  const handleCopyLink = (o: WebOffer) => {
-    navigator.clipboard.writeText(window.location.origin + '/shop?offer=' + o.id);
-    setToast('Lien copié !');
-    setTimeout(() => setToast(''), 2500);
-  };
-
   const silverName = (id: string) => silverTypes.find(s => s.id === id)?.name || id;
 
+  const handleSave = (payload: Omit<WebOffer, 'id' | 'createdAt'>) => {
+    if (editing) updateWebOffer(editing.id, payload);
+    else addWebOffer(payload);
+    setToast(editing ? 'Offre modifiée !' : 'Offre créée !');
+    setTimeout(() => setToast(''), 3000);
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm('Supprimer cette offre ?')) {
+      deleteWebOffer(id);
+      setToast('Offre supprimée');
+      setTimeout(() => setToast(''), 3000);
+    }
+  };
+
+  const visible = webOffers.filter(o => !o.isHidden).length;
+  const hidden = webOffers.filter(o => o.isHidden).length;
+
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--silver-100)', margin: 0 }}>Offres ({webOffers.length})</h2>
-        <button onClick={openCreate} className="btn-gold" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px', borderRadius: 16, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* Stats */}
+      {webOffers.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
+          <StatCard icon={ShoppingBag} label="Total offres" value={webOffers.length} />
+          <StatCard icon={Eye} label="Visibles" value={visible} color="#10b981" />
+          <StatCard icon={EyeOff} label="Masquées" value={hidden} color="var(--silver-300)" />
+        </div>
+      )}
+
+      {/* Header row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--silver-100)', margin: 0 }}>
+          Toutes les offres <span style={{ fontSize: 13, color: 'var(--silver-400)', fontWeight: 600 }}>({webOffers.length})</span>
+        </h2>
+        <button
+          onClick={() => { setEditing(null); setShowModal(true); }}
+          className="btn-gold"
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px', borderRadius: 14, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+        >
           <Plus size={16} /> Nouvelle Offre
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+      {/* Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: 18 }}>
         {webOffers.map(o => (
-          <div key={o.id} className="lux-card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ height: 160, background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-              {o.image ? <img src={o.image} alt={o.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={36} color="var(--silver-400)" />}
-            </div>
-            <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-                <h3 style={{ fontWeight: 700, color: 'var(--silver-100)', fontSize: 13, margin: 0 }}>{o.name}</h3>
-                <span className={o.isHidden ? 'badge badge-platinum' : 'badge badge-success'}>
-                  {o.isHidden ? 'Masqué' : 'Visible'}
-                </span>
-              </div>
-              <p style={{ fontSize: 11, color: 'var(--silver-300)', margin: 0 }}>{silverName(o.silverTypeId)} • {o.calibre} • {o.form}</p>
-              <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold)', margin: 0 }}>
-                {o.pricingMode === 'perGram' ? `${o.totalPrice.toLocaleString()} DA` : `${o.unitPrice?.toLocaleString()} DA / pièce`}
-              </p>
-              {o.showQuantity && <p style={{ fontSize: 11, color: 'var(--silver-400)', margin: 0 }}>Quantité: {o.quantity}</p>}
-              <div style={{ display: 'flex', gap: 6, marginTop: 'auto', paddingTop: 12, flexWrap: 'wrap' }}>
-                <button onClick={() => setDetail(o)} className="btn-icon" title="Voir détails"><Eye size={14} /></button>
-                <button onClick={() => openEdit(o)} className="btn-icon" title="Modifier"><Edit2 size={14} /></button>
-                <button onClick={() => { if (confirm('Supprimer cette offre ?')) deleteWebOffer(o.id); }} className="btn-icon danger" title="Supprimer"><Trash2 size={14} /></button>
-                <button onClick={() => updateWebOffer(o.id, { isHidden: !o.isHidden })} className="btn-icon" title={o.isHidden ? 'Afficher' : 'Masquer'}>
-                  {o.isHidden ? <Eye size={14} /> : <EyeOff size={14} />}
-                </button>
-                <button onClick={() => handleCopyLink(o)} className="btn-icon" title="Copier le lien"><Link size={14} /></button>
-              </div>
-            </div>
-          </div>
+          <OfferCard
+            key={o.id}
+            offer={o}
+            silverName={silverName}
+            onEdit={() => { setEditing(o); setShowModal(true); }}
+            onDelete={() => handleDelete(o.id)}
+            onDetail={() => setDetail(o)}
+            onToggleHide={() => updateWebOffer(o.id, { isHidden: !o.isHidden })}
+            onCopyLink={() => {
+              navigator.clipboard.writeText(window.location.origin + '/shop?offer=' + o.id);
+              setToast('Lien copié !');
+              setTimeout(() => setToast(''), 2500);
+            }}
+          />
         ))}
-        {webOffers.length === 0 && (
-          <p style={{ color: 'var(--silver-400)', fontSize: 13, gridColumn: '1/-1', textAlign: 'center', padding: '48px 0' }}>
-            Aucune offre. Créez votre première offre.
-          </p>
-        )}
       </div>
 
-      {/* Create/Edit Modal */}
-      <OfferFormModal
+      {webOffers.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '64px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 64, height: 64, borderRadius: 20, background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ShoppingBag size={28} color="var(--gold)" />
+          </div>
+          <div>
+            <p style={{ color: 'var(--silver-100)', fontSize: 15, fontWeight: 700, margin: '0 0 6px' }}>Aucune offre</p>
+            <p style={{ color: 'var(--silver-400)', fontSize: 13, margin: 0 }}>Créez votre première offre pour la publier sur le site</p>
+          </div>
+          <button onClick={() => { setEditing(null); setShowModal(true); }} className="btn-gold"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px', borderRadius: 14, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            <Plus size={15} /> Créer une offre
+          </button>
+        </div>
+      )}
+
+      <OfferModal
         open={showModal}
-        onClose={closeShowModal}
+        onClose={() => setShowModal(false)}
         editing={editing}
-        isSpecial={false}
-        onSave={(payload) => {
-          const total = payload.pricingMode === 'perGram' ? payload.weight * payload.pricePerGram : payload.unitPrice;
-          const finalPayload = { ...payload, totalPrice: total };
-          if (editing) updateWebOffer(editing.id, finalPayload);
-          else addWebOffer(finalPayload);
-        }}
+        onSave={handleSave}
         silverTypes={silverTypes}
         shapes={shapes}
       />
@@ -494,13 +1002,10 @@ const OffersTab: React.FC = () => {
       {/* Detail Modal */}
       <AnimatePresence>
         {detail && (
-          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeDetail}>
-            <motion.div
-              className="modal-box"
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDetail(null)}>
+            <motion.div className="modal-box" style={{ maxWidth: 480 }}
+              initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }} transition={{ type: 'spring', stiffness: 320, damping: 28 }}
               onClick={e => e.stopPropagation()}
             >
               <div className="modal-header">
@@ -508,22 +1013,26 @@ const OffersTab: React.FC = () => {
                   <div className="silver-line" style={{ marginBottom: 6 }} />
                   <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--silver-100)', letterSpacing: '-0.03em', margin: 0 }}>Détails de l'offre</h2>
                 </div>
-                <button onClick={closeDetail} className="btn-icon"><X size={18} /></button>
+                <button onClick={() => setDetail(null)} className="btn-icon"><X size={18} /></button>
               </div>
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {detail.image && <img src={detail.image} style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 12 }} alt="" />}
+                {detail.image && <img src={detail.image} style={{ width: '100%', height: 200, objectFit: 'cover', borderRadius: 14 }} alt="" />}
                 {[
                   { label: 'Nom', value: detail.name },
                   { label: 'Type argent', value: silverName(detail.silverTypeId) },
-                  { label: 'Calibre', value: detail.calibre },
-                  { label: 'Forme', value: detail.form },
+                  { label: 'Calibre', value: detail.calibre || '—' },
+                  { label: 'Forme', value: detail.form || '—' },
                   { label: 'Mode prix', value: detail.pricingMode === 'perGram' ? 'Au gramme' : 'À la pièce' },
+                  ...(detail.pricingMode === 'perGram' ? [
+                    { label: 'Poids', value: `${detail.weight ?? 0} g` },
+                    { label: 'Prix/g', value: `${detail.pricePerGram ?? 0} DA` },
+                  ] : []),
                   { label: 'Prix total', value: `${detail.totalPrice.toLocaleString()} DA`, gold: true },
-                  { label: 'Statut', value: detail.isHidden ? 'Masqué' : 'Visible' },
-                ].map(({ label, value, gold }) => (
-                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: 'var(--silver-300)' }}>{label}</span>
-                    <span style={{ fontWeight: 700, color: gold ? 'var(--gold)' : 'var(--silver-100)' }}>{value}</span>
+                  { label: 'Statut', value: detail.isHidden ? 'Masqué' : 'Visible', success: !detail.isHidden },
+                ].map(({ label, value, gold, success }) => (
+                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                    <span style={{ color: 'var(--silver-400)', fontWeight: 600 }}>{label}</span>
+                    <span style={{ fontWeight: 700, color: gold ? 'var(--gold)' : success ? '#10b981' : 'var(--silver-100)' }}>{value}</span>
                   </div>
                 ))}
               </div>
@@ -532,12 +1041,13 @@ const OffersTab: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {toast && <Toast msg={toast} onClose={() => setToast('')} />}
+      <AnimatePresence>{toast && <Toast msg={toast} onClose={() => setToast('')} />}</AnimatePresence>
     </div>
   );
 };
 
-// ==================== SPECIAL OFFERS TAB ====================
+// ─── SPECIAL OFFERS TAB ───────────────────────────────────────────────────────
+
 const SpecialOffersTab: React.FC = () => {
   const { webSpecialOffers, addWebSpecialOffer, updateWebSpecialOffer, deleteWebSpecialOffer, silverTypes, shapes } = useApp();
   const [showModal, setShowModal] = useState(false);
@@ -545,102 +1055,94 @@ const SpecialOffersTab: React.FC = () => {
   const [detail, setDetail] = useState<WebSpecialOffer | null>(null);
   const [toast, setToast] = useState('');
 
-  const closeShowModal = () => { setShowModal(false); };
-  const closeDetail = () => { setDetail(null); };
-
-  const openCreate = () => { setEditing(null); setShowModal(true); };
-  const openEdit = (o: WebSpecialOffer) => { setEditing(o); setShowModal(true); };
-
-  const handleCopyLink = (o: WebSpecialOffer) => {
-    navigator.clipboard.writeText(window.location.origin + '/shop?special=' + o.id);
-    setToast('Lien copié !');
-    setTimeout(() => setToast(''), 2500);
-  };
-
-  const discountPct = (orig: number, special: number) => orig > 0 ? Math.round((orig - special) / orig * 100) : 0;
   const silverName = (id: string) => silverTypes.find(s => s.id === id)?.name || id;
+  const discountPct = (orig: number, sp: number) => orig > 0 ? Math.round((orig - sp) / orig * 100) : 0;
 
-  const Countdown: React.FC<{ endDate: string; endHour: string }> = ({ endDate, endHour }) => {
-    const [remaining, setRemaining] = React.useState('');
-    React.useEffect(() => {
-      const end = new Date(`${endDate}T${endHour || '23:59'}`);
-      const update = () => {
-        const diff = end.getTime() - Date.now();
-        if (diff <= 0) { setRemaining('Expiré'); return; }
-        const d = Math.floor(diff / 86400000);
-        const h = Math.floor((diff % 86400000) / 3600000);
-        const m = Math.floor((diff % 3600000) / 60000);
-        setRemaining(`${d}j ${h}h ${m}m`);
-      };
-      update();
-      const iv = setInterval(update, 60000);
-      return () => clearInterval(iv);
-    }, [endDate, endHour]);
-    return <span style={{ fontSize: 11, color: 'var(--danger)', fontWeight: 700 }}>⏱ {remaining}</span>;
+  const handleSave = (payload: Omit<WebSpecialOffer, 'id' | 'createdAt'>) => {
+    if (editing) updateWebSpecialOffer(editing.id, payload);
+    else addWebSpecialOffer(payload);
+    setToast(editing ? 'Offre spéciale modifiée !' : 'Offre spéciale créée !');
+    setTimeout(() => setToast(''), 3000);
   };
+
+  const handleDelete = (id: string) => {
+    if (confirm('Supprimer cette offre spéciale ?')) {
+      deleteWebSpecialOffer(id);
+      setToast('Offre supprimée');
+      setTimeout(() => setToast(''), 3000);
+    }
+  };
+
+  const active = webSpecialOffers.filter(o => o.isActive && !o.isHidden).length;
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--silver-100)', margin: 0 }}>Offres Spéciales ({webSpecialOffers.length})</h2>
-        <button onClick={openCreate} className="btn-gold" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px', borderRadius: 16, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {webSpecialOffers.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
+          <StatCard icon={Zap} label="Total spéciales" value={webSpecialOffers.length} color="#ef4444" />
+          <StatCard icon={TrendingUp} label="Actives" value={active} color="#10b981" />
+          <StatCard icon={Tag} label="Moy. réduction" value={
+            webSpecialOffers.length > 0
+              ? `${Math.round(webSpecialOffers.reduce((s, o) => s + discountPct(o.originalPrice, o.specialPrice), 0) / webSpecialOffers.length)}%`
+              : '0%'
+          } color="var(--gold)" />
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--silver-100)', margin: 0 }}>
+          Offres spéciales <span style={{ fontSize: 13, color: 'var(--silver-400)', fontWeight: 600 }}>({webSpecialOffers.length})</span>
+        </h2>
+        <button
+          onClick={() => { setEditing(null); setShowModal(true); }}
+          className="btn-gold"
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px', borderRadius: 14, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+        >
           <Plus size={16} /> Nouvelle Offre Spéciale
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))', gap: 18 }}>
         {webSpecialOffers.map(o => (
-          <div key={o.id} className="lux-card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ height: 160, background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', position: 'relative' }}>
-              {o.image ? <img src={o.image} alt={o.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImageIcon size={36} color="var(--silver-400)" />}
-              <span className="badge badge-danger" style={{ position: 'absolute', top: 8, right: 8 }}>-{discountPct(o.originalPrice, o.specialPrice)}%</span>
-            </div>
-            <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-                <h3 style={{ fontWeight: 700, color: 'var(--silver-100)', fontSize: 13, margin: 0 }}>{o.name}</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span className={o.isActive ? 'badge badge-success' : 'badge badge-platinum'}>{o.isActive ? 'Active' : 'Inactive'}</span>
-                  <span className={o.isHidden ? 'badge badge-platinum' : 'badge badge-info'}>{o.isHidden ? 'Masqué' : 'Visible'}</span>
-                </div>
-              </div>
-              <p style={{ fontSize: 11, color: 'var(--silver-300)', margin: 0 }}>{silverName(o.silverTypeId)} • {o.calibre} • {o.form}</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 12, textDecoration: 'line-through', color: 'var(--silver-400)' }}>{o.originalPrice.toLocaleString()} DA</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold)' }}>{o.specialPrice.toLocaleString()} DA</span>
-              </div>
-              {o.endDate && <Countdown endDate={o.endDate} endHour={o.endHour} />}
-              <div style={{ display: 'flex', gap: 6, marginTop: 'auto', paddingTop: 12, flexWrap: 'wrap' }}>
-                <button onClick={() => setDetail(o)} className="btn-icon" title="Détails"><Eye size={14} /></button>
-                <button onClick={() => openEdit(o)} className="btn-icon" title="Modifier"><Edit2 size={14} /></button>
-                <button onClick={() => { if (confirm('Supprimer ?')) deleteWebSpecialOffer(o.id); }} className="btn-icon danger" title="Supprimer"><Trash2 size={14} /></button>
-                <button onClick={() => updateWebSpecialOffer(o.id, { isHidden: !o.isHidden })} className="btn-icon"><EyeOff size={14} /></button>
-                <button onClick={() => updateWebSpecialOffer(o.id, { isActive: !o.isActive })} className="btn-icon">
-                  {o.isActive ? <Square size={14} /> : <Play size={14} />}
-                </button>
-                <button onClick={() => handleCopyLink(o)} className="btn-icon"><Link size={14} /></button>
-              </div>
-            </div>
-          </div>
+          <SpecialOfferCard
+            key={o.id}
+            offer={o}
+            silverName={silverName}
+            onEdit={() => { setEditing(o); setShowModal(true); }}
+            onDelete={() => handleDelete(o.id)}
+            onDetail={() => setDetail(o)}
+            onToggleHide={() => updateWebSpecialOffer(o.id, { isHidden: !o.isHidden })}
+            onToggleActive={() => updateWebSpecialOffer(o.id, { isActive: !o.isActive })}
+            onCopyLink={() => {
+              navigator.clipboard.writeText(window.location.origin + '/shop?special=' + o.id);
+              setToast('Lien copié !');
+              setTimeout(() => setToast(''), 2500);
+            }}
+          />
         ))}
-        {webSpecialOffers.length === 0 && (
-          <p style={{ color: 'var(--silver-400)', fontSize: 13, gridColumn: '1/-1', textAlign: 'center', padding: '48px 0' }}>
-            Aucune offre spéciale.
-          </p>
-        )}
       </div>
 
-      {/* Create/Edit Modal */}
-      <OfferFormModal
+      {webSpecialOffers.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '64px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 64, height: 64, borderRadius: 20, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Zap size={28} color="#ef4444" />
+          </div>
+          <div>
+            <p style={{ color: 'var(--silver-100)', fontSize: 15, fontWeight: 700, margin: '0 0 6px' }}>Aucune offre spéciale</p>
+            <p style={{ color: 'var(--silver-400)', fontSize: 13, margin: 0 }}>Créez des promotions limitées dans le temps avec compte à rebours</p>
+          </div>
+          <button onClick={() => { setEditing(null); setShowModal(true); }} className="btn-gold"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px', borderRadius: 14, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            <Plus size={15} /> Créer une offre spéciale
+          </button>
+        </div>
+      )}
+
+      <SpecialOfferModal
         open={showModal}
-        onClose={closeShowModal}
+        onClose={() => setShowModal(false)}
         editing={editing}
-        isSpecial={true}
-        onSave={(payload) => {
-          const origPrice = payload.originalPrice || (payload.pricingMode === 'alaPiece' ? payload.unitPrice : payload.weight * payload.pricePerGram);
-          const finalPayload = { ...payload, originalPrice: origPrice };
-          if (editing) updateWebSpecialOffer(editing.id, finalPayload);
-          else addWebSpecialOffer(finalPayload);
-        }}
+        onSave={handleSave}
         silverTypes={silverTypes}
         shapes={shapes}
       />
@@ -648,34 +1150,37 @@ const SpecialOffersTab: React.FC = () => {
       {/* Detail Modal */}
       <AnimatePresence>
         {detail && (
-          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeDetail}>
-            <motion.div
-              className="modal-box"
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setDetail(null)}>
+            <motion.div className="modal-box" style={{ maxWidth: 480 }}
+              initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }} transition={{ type: 'spring', stiffness: 320, damping: 28 }}
               onClick={e => e.stopPropagation()}
             >
               <div className="modal-header">
                 <div>
                   <div className="silver-line" style={{ marginBottom: 6 }} />
-                  <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--silver-100)', letterSpacing: '-0.03em', margin: 0 }}>Détails</h2>
+                  <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--silver-100)', letterSpacing: '-0.03em', margin: 0 }}>Détails offre spéciale</h2>
                 </div>
-                <button onClick={closeDetail} className="btn-icon"><X size={18} /></button>
+                <button onClick={() => setDetail(null)} className="btn-icon"><X size={18} /></button>
               </div>
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {detail.image && <img src={detail.image} style={{ width: '100%', height: 160, objectFit: 'cover', borderRadius: 12 }} alt="" />}
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {detail.image && <img src={detail.image} style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 14, marginBottom: 12 }} alt="" />}
                 {[
                   { label: 'Nom', value: detail.name },
+                  { label: 'Type argent', value: silverName(detail.silverTypeId) },
                   { label: 'Prix original', value: `${detail.originalPrice.toLocaleString()} DA`, line: true },
                   { label: 'Prix spécial', value: `${detail.specialPrice.toLocaleString()} DA`, gold: true },
-                  { label: 'Réduction', value: `${discountPct(detail.originalPrice, detail.specialPrice)}%`, danger: true },
-                  { label: 'Fin', value: `${detail.endDate} ${detail.endHour}` },
-                ].map(({ label, value, gold, danger, line }) => (
-                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: 'var(--silver-300)' }}>{label}</span>
-                    <span style={{ fontWeight: 700, color: gold ? 'var(--gold)' : danger ? 'var(--danger)' : 'var(--silver-100)', textDecoration: line ? 'line-through' : 'none' }}>{value}</span>
+                  { label: 'Réduction', value: `-${discountPct(detail.originalPrice, detail.specialPrice)}%`, danger: true },
+                  { label: 'Période', value: `${detail.startDate} → ${detail.endDate}` },
+                  { label: 'Statut', value: detail.isActive ? 'Active' : 'Inactive', success: detail.isActive },
+                ].map(({ label, value, gold, success, danger, line }) => (
+                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
+                    <span style={{ color: 'var(--silver-400)', fontWeight: 600 }}>{label}</span>
+                    <span style={{
+                      fontWeight: 700,
+                      color: gold ? 'var(--gold)' : success ? '#10b981' : danger ? '#ef4444' : 'var(--silver-100)',
+                      textDecoration: line ? 'line-through' : 'none',
+                    }}>{value}</span>
                   </div>
                 ))}
               </div>
@@ -684,12 +1189,13 @@ const SpecialOffersTab: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {toast && <Toast msg={toast} onClose={() => setToast('')} />}
+      <AnimatePresence>{toast && <Toast msg={toast} onClose={() => setToast('')} />}</AnimatePresence>
     </div>
   );
 };
 
-// ==================== DELIVERY TAB ====================
+// ─── DELIVERY TAB ─────────────────────────────────────────────────────────────
+
 const DeliveryTab: React.FC = () => {
   const { webDeliveryCompanies, addWebDeliveryCompany, updateWebDeliveryCompany, deleteWebDeliveryCompany } = useApp();
   const [showCreate, setShowCreate] = useState(false);
@@ -698,32 +1204,32 @@ const DeliveryTab: React.FC = () => {
   const [companyForm, setCompanyForm] = useState({ name: '', phone: '' });
   const [selectedWilayaCode, setSelectedWilayaCode] = useState<number | ''>('');
   const [communesInput, setCommunesInput] = useState('');
+  const [toBureau, setToBureau] = useState(0);
+  const [toHome, setToHome] = useState(0);
+  const [toast, setToast] = useState('');
 
   const handleWilayaSelect = (code: number | '') => {
     setSelectedWilayaCode(code);
     if (code) {
       const wilaya = ALGERIA_WILAYAS.find(w => w.code === code);
-      if (wilaya?.communes?.length) {
-        setCommunesInput(wilaya.communes.join(', '));
-      }
+      if (wilaya?.communes?.length) setCommunesInput(wilaya.communes.join(', '));
     } else {
       setCommunesInput('');
     }
   };
-  const [toBureau, setToBureau] = useState(0);
-  const [toHome, setToHome] = useState(0);
-
-  const openCreate = () => { setEditingCompany(null); setCompanyForm({ name: '', phone: '' }); setShowCreate(true); };
-  const openEdit = (c: WebDeliveryCompany) => { setEditingCompany(c); setCompanyForm({ name: c.name, phone: c.phone }); setShowCreate(true); };
-
-  const closeShowCreate = () => { setShowCreate(false); setEditingCompany(null); };
-
-  const closeManagingCompany = () => { setManagingCompany(null); };
 
   const saveCompany = () => {
-    if (editingCompany) updateWebDeliveryCompany(editingCompany.id, companyForm);
-    else addWebDeliveryCompany({ ...companyForm, wilayas: [] });
-    closeShowCreate();
+    if (!companyForm.name.trim()) return;
+    if (editingCompany) {
+      updateWebDeliveryCompany(editingCompany.id, companyForm);
+      setToast('Société modifiée !');
+    } else {
+      addWebDeliveryCompany({ ...companyForm, wilayas: [] });
+      setToast('Société ajoutée !');
+    }
+    setShowCreate(false);
+    setEditingCompany(null);
+    setTimeout(() => setToast(''), 3000);
   };
 
   const addWilaya = () => {
@@ -732,13 +1238,15 @@ const DeliveryTab: React.FC = () => {
     if (!wilaya) return;
     const communes = communesInput.split(',').map(s => s.trim()).filter(Boolean);
     const newWilaya: WebWilayaPrice = { wilayaCode: wilaya.code, wilayaName: wilaya.name, communes, toBureau, toHome };
-    const updated = { ...managingCompany, wilayas: [...managingCompany.wilayas.filter(w => w.wilayaCode !== wilaya.code), newWilaya] };
+    const updated: WebDeliveryCompany = { ...managingCompany, wilayas: [...managingCompany.wilayas.filter(w => w.wilayaCode !== wilaya.code), newWilaya] };
     updateWebDeliveryCompany(managingCompany.id, { wilayas: updated.wilayas });
     setManagingCompany(updated);
     setSelectedWilayaCode('');
     setCommunesInput('');
     setToBureau(0);
     setToHome(0);
+    setToast('Wilaya ajoutée !');
+    setTimeout(() => setToast(''), 2500);
   };
 
   const deleteWilaya = (code: number) => {
@@ -748,77 +1256,106 @@ const DeliveryTab: React.FC = () => {
     setManagingCompany({ ...managingCompany, wilayas });
   };
 
+  const totalWilayas = webDeliveryCompanies.reduce((s, c) => s + c.wilayas.length, 0);
+
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--silver-100)', margin: 0 }}>Sociétés de Livraison ({webDeliveryCompanies.length})</h2>
-        <button onClick={openCreate} className="btn-gold" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px', borderRadius: 16, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {webDeliveryCompanies.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
+          <StatCard icon={Truck} label="Sociétés" value={webDeliveryCompanies.length} />
+          <StatCard icon={MapPin} label="Wilayas couvertes" value={totalWilayas} color="#10b981" />
+        </div>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--silver-100)', margin: 0 }}>
+          Sociétés de livraison <span style={{ fontSize: 13, color: 'var(--silver-400)', fontWeight: 600 }}>({webDeliveryCompanies.length})</span>
+        </h2>
+        <button
+          onClick={() => { setEditingCompany(null); setCompanyForm({ name: '', phone: '' }); setShowCreate(true); }}
+          className="btn-gold"
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 22px', borderRadius: 14, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+        >
           <Plus size={16} /> Nouvelle Société
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
         {webDeliveryCompanies.map(c => (
-          <div key={c.id} className="lux-card" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div>
-              <h3 style={{ fontWeight: 700, color: 'var(--silver-100)', margin: '0 0 4px' }}>{c.name}</h3>
-              <p style={{ fontSize: 12, color: 'var(--silver-300)', margin: 0 }}>{c.phone}</p>
-              <p style={{ fontSize: 11, color: 'var(--silver-400)', margin: '4px 0 0' }}>{c.wilayas.length} wilaya(s) configurée(s)</p>
+          <div key={c.id} className="lux-card" style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h3 style={{ fontWeight: 800, color: 'var(--silver-100)', margin: '0 0 4px', fontSize: 15 }}>{c.name}</h3>
+                <p style={{ fontSize: 12, color: 'var(--silver-300)', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <PhoneCall size={11} /> {c.phone || 'Pas de téléphone'}
+                </p>
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 8, background: 'rgba(201,168,76,0.12)', color: 'var(--gold)' }}>
+                {c.wilayas.length} wilaya{c.wilayas.length !== 1 ? 's' : ''}
+              </span>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => openEdit(c)} className="btn-icon" title="Modifier"><Edit2 size={14} /></button>
-              <button onClick={() => { if (confirm('Supprimer cette société ?')) deleteWebDeliveryCompany(c.id); }} className="btn-icon danger" title="Supprimer"><Trash2 size={14} /></button>
+              <button onClick={() => { setEditingCompany(c); setCompanyForm({ name: c.name, phone: c.phone }); setShowCreate(true); }} className="btn-icon" title="Modifier"><Edit2 size={14} /></button>
+              <button onClick={() => { if (confirm('Supprimer cette société ?')) { deleteWebDeliveryCompany(c.id); setToast('Société supprimée'); setTimeout(() => setToast(''), 2500); } }} className="btn-icon danger" title="Supprimer"><Trash2 size={14} /></button>
               <button
                 onClick={() => setManagingCompany(c)}
                 className="btn-silver"
-                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '8px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
               >
-                <Truck size={13} /> Gérer les prix
+                <Truck size={13} /> Gérer les wilayas
               </button>
             </div>
           </div>
         ))}
-        {webDeliveryCompanies.length === 0 && (
-          <p style={{ color: 'var(--silver-400)', fontSize: 13, gridColumn: '1/-1', textAlign: 'center', padding: '48px 0' }}>Aucune société de livraison.</p>
-        )}
       </div>
+
+      {webDeliveryCompanies.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '64px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 64, height: 64, borderRadius: 20, background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Truck size={28} color="var(--gold)" />
+          </div>
+          <p style={{ color: 'var(--silver-100)', fontSize: 15, fontWeight: 700, margin: '0 0 6px' }}>Aucune société de livraison</p>
+          <p style={{ color: 'var(--silver-400)', fontSize: 13, margin: 0 }}>Ajoutez des sociétés pour activer la livraison sur votre site</p>
+        </div>
+      )}
 
       {/* Create/Edit Modal */}
       <AnimatePresence>
         {showCreate && (
-          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeShowCreate}>
-            <motion.div
-              className="modal-box"
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCreate(false)}>
+            <motion.div className="modal-box" style={{ maxWidth: 480 }}
+              initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }} transition={{ type: 'spring', stiffness: 320, damping: 28 }}
               onClick={e => e.stopPropagation()}
             >
               <div className="modal-header">
                 <div>
                   <div className="silver-line" style={{ marginBottom: 6 }} />
                   <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--silver-100)', letterSpacing: '-0.03em', margin: 0 }}>
-                    {editingCompany ? 'Modifier' : 'Nouvelle société'}
+                    {editingCompany ? 'Modifier la société' : 'Nouvelle société de livraison'}
                   </h2>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--silver-300)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '4px 0 0' }}>Société de livraison</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--silver-300)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '4px 0 0' }}>
+                    Société de livraison
+                  </p>
                 </div>
-                <button onClick={closeShowCreate} className="btn-icon"><X size={18} /></button>
+                <button onClick={() => setShowCreate(false)} className="btn-icon"><X size={18} /></button>
               </div>
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div>
-                  <label className="lux-label">Nom</label>
-                  <input value={companyForm.name} onChange={e => setCompanyForm(f => ({ ...f, name: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
+                  <label className="lux-label">Nom de la société</label>
+                  <input value={companyForm.name} onChange={e => setCompanyForm(f => ({ ...f, name: e.target.value }))}
+                    className="lux-input" style={{ marginTop: 6 }} placeholder="Ex: Yalitec, Zr Express..." />
                 </div>
                 <div>
                   <label className="lux-label">Téléphone</label>
-                  <input value={companyForm.phone} onChange={e => setCompanyForm(f => ({ ...f, phone: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
+                  <input value={companyForm.phone} onChange={e => setCompanyForm(f => ({ ...f, phone: e.target.value }))}
+                    className="lux-input" style={{ marginTop: 6 }} placeholder="0555..." />
                 </div>
               </div>
               <div className="modal-footer">
-                <button onClick={closeShowCreate} className="btn-outline" style={{ padding: '10px 24px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Annuler</button>
-                <button onClick={saveCompany} className="btn-gold" style={{ padding: '10px 24px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Save size={15} /> Enregistrer
+                <button onClick={() => setShowCreate(false)} className="btn-outline" style={{ padding: '10px 28px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Annuler</button>
+                <button onClick={saveCompany} className="btn-gold" style={{ padding: '10px 28px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Save size={15} /> {editingCompany ? 'Enregistrer' : 'Ajouter'}
                 </button>
               </div>
             </motion.div>
@@ -829,29 +1366,25 @@ const DeliveryTab: React.FC = () => {
       {/* Manage Wilayas Modal */}
       <AnimatePresence>
         {managingCompany && (
-          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeManagingCompany}>
-            <motion.div
-              className="modal-box"
-              style={{ maxWidth: 680, maxHeight: '90vh', overflowY: 'auto' }}
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setManagingCompany(null)}>
+            <motion.div className="modal-box" style={{ maxWidth: 720, maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+              initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }} transition={{ type: 'spring', stiffness: 320, damping: 28 }}
               onClick={e => e.stopPropagation()}
             >
-              <div className="modal-header">
+              <div className="modal-header" style={{ flexShrink: 0 }}>
                 <div>
                   <div className="silver-line" style={{ marginBottom: 6 }} />
                   <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--silver-100)', letterSpacing: '-0.03em', margin: 0 }}>Prix de livraison</h2>
                   <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--silver-300)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '4px 0 0' }}>{managingCompany.name}</p>
                 </div>
-                <button onClick={closeManagingCompany} className="btn-icon"><X size={18} /></button>
+                <button onClick={() => setManagingCompany(null)} className="btn-icon"><X size={18} /></button>
               </div>
 
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                {/* Add wilaya form */}
+              <div className="modal-body" style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
+                {/* Add form */}
                 <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <h4 style={{ fontSize: 12, fontWeight: 800, color: 'var(--silver-200)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Ajouter un wilaya</h4>
+                  <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--silver-200)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Ajouter / Modifier un wilaya</p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                     <div>
                       <label className="lux-label">Wilaya</label>
@@ -866,15 +1399,15 @@ const DeliveryTab: React.FC = () => {
                     </div>
                     <div>
                       <label className="lux-label">Prix bureau (DA)</label>
-                      <input type="number" value={toBureau} onChange={e => setToBureau(+e.target.value)} className="lux-input" style={{ marginTop: 6 }} />
+                      <input type="number" value={toBureau || ''} onChange={e => setToBureau(+e.target.value)} className="lux-input" style={{ marginTop: 6 }} placeholder="0" />
                     </div>
                     <div>
                       <label className="lux-label">Prix domicile (DA)</label>
-                      <input type="number" value={toHome} onChange={e => setToHome(+e.target.value)} className="lux-input" style={{ marginTop: 6 }} />
+                      <input type="number" value={toHome || ''} onChange={e => setToHome(+e.target.value)} className="lux-input" style={{ marginTop: 6 }} placeholder="0" />
                     </div>
                   </div>
-                  <button onClick={addWilaya} className="btn-gold" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start' }}>
-                    <Plus size={13} /> Ajouter
+                  <button onClick={addWilaya} className="btn-gold" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start' }}>
+                    <Plus size={14} /> Ajouter ce wilaya
                   </button>
                 </div>
 
@@ -892,15 +1425,13 @@ const DeliveryTab: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {managingCompany.wilayas.map(w => (
+                        {managingCompany.wilayas.sort((a, b) => a.wilayaCode - b.wilayaCode).map(w => (
                           <tr key={w.wilayaCode}>
-                            <td style={{ fontWeight: 600, color: 'var(--silver-100)' }}>{w.wilayaCode}. {w.wilayaName}</td>
-                            <td style={{ fontSize: 11, color: 'var(--silver-300)' }}>{w.communes.join(', ')}</td>
-                            <td style={{ textAlign: 'right', color: 'var(--silver-200)' }}>{w.toBureau.toLocaleString()} DA</td>
-                            <td style={{ textAlign: 'right', color: 'var(--silver-200)' }}>{w.toHome.toLocaleString()} DA</td>
-                            <td>
-                              <button onClick={() => deleteWilaya(w.wilayaCode)} className="btn-icon danger"><Trash2 size={13} /></button>
-                            </td>
+                            <td style={{ fontWeight: 700, color: 'var(--silver-100)' }}>{w.wilayaCode}. {w.wilayaName}</td>
+                            <td style={{ fontSize: 11, color: 'var(--silver-300)', maxWidth: 200 }}>{w.communes.slice(0, 4).join(', ')}{w.communes.length > 4 ? ` +${w.communes.length - 4}` : ''}</td>
+                            <td style={{ textAlign: 'right', color: 'var(--gold)', fontWeight: 700 }}>{w.toBureau.toLocaleString()} DA</td>
+                            <td style={{ textAlign: 'right', color: 'var(--silver-200)', fontWeight: 700 }}>{w.toHome.toLocaleString()} DA</td>
+                            <td><button onClick={() => deleteWilaya(w.wilayaCode)} className="btn-icon danger"><Trash2 size={13} /></button></td>
                           </tr>
                         ))}
                       </tbody>
@@ -914,11 +1445,14 @@ const DeliveryTab: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <AnimatePresence>{toast && <Toast msg={toast} onClose={() => setToast('')} />}</AnimatePresence>
     </div>
   );
 };
 
-// ==================== CONTACTS TAB ====================
+// ─── CONTACTS TAB ─────────────────────────────────────────────────────────────
+
 const ContactsTab: React.FC = () => {
   const { webContacts, updateWebContacts } = useApp();
   const [form, setForm] = useState({ ...webContacts });
@@ -927,50 +1461,83 @@ const ContactsTab: React.FC = () => {
   const handleSave = () => {
     updateWebContacts(form);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setTimeout(() => setSaved(false), 3000);
   };
 
-  const Field = ({ icon: Icon, label, field, placeholder }: { icon: React.ElementType; label: string; field: keyof typeof form; placeholder?: string }) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-      <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <Icon size={17} color="var(--gold)" />
+  const ContactField = ({
+    icon: Icon, label, field, placeholder, color = 'var(--gold)',
+  }: { icon: React.ElementType; label: string; field: keyof typeof form; placeholder?: string; color?: string }) => (
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+      <div style={{
+        width: 42, height: 42, borderRadius: 12, flexShrink: 0, marginTop: 22,
+        background: `${color}1A`, border: `1px solid ${color}33`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon size={17} color={color} />
       </div>
       <div style={{ flex: 1 }}>
         <label className="lux-label">{label}</label>
-        <input value={(form[field] as string) || ''} onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))} placeholder={placeholder || ''} className="lux-input" style={{ marginTop: 6 }} />
+        <input
+          value={(form[field] as string) || ''}
+          onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
+          placeholder={placeholder || ''}
+          className="lux-input"
+          style={{ marginTop: 6 }}
+        />
       </div>
     </div>
   );
 
   return (
-    <div style={{ maxWidth: 560 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--silver-100)', marginBottom: 20 }}>Contacts & Réseaux Sociaux</h2>
-      <div className="lux-card" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-        <Field icon={Facebook} label="Facebook" field="facebook" placeholder="https://facebook.com/..." />
-        <Field icon={Instagram} label="Instagram" field="instagram" placeholder="https://instagram.com/..." />
-        <Field icon={Globe as React.ElementType} label="TikTok" field="tiktok" placeholder="https://tiktok.com/@..." />
-        <Field icon={Globe as React.ElementType} label="Snapchat" field="snapchat" placeholder="https://snapchat.com/add/..." />
-        <Field icon={PhoneCall} label="WhatsApp" field="whatsapp" placeholder="+213..." />
-        <Field icon={Send} label="Telegram" field="telegram" placeholder="https://t.me/..." />
-        <Field icon={Mail} label="Email" field="email" placeholder="contact@..." />
-        <Field icon={PhoneCall} label="Téléphone" field="phone" placeholder="0555..." />
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(212,175,55,0.12)', border: '1px solid rgba(212,175,55,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 24 }}>
-            <MapPin size={17} color="var(--gold)" />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label className="lux-label">Adresse</label>
-            <textarea value={form.address || ''} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} rows={3} className="lux-input" style={{ marginTop: 6, resize: 'none' }} />
+    <div style={{ maxWidth: 600 }}>
+      <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--silver-100)', marginBottom: 20 }}>Contacts & Réseaux Sociaux</h2>
+      <div className="lux-card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 4 }}>
+
+        <div style={{ marginBottom: 8 }}>
+          <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--silver-400)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 14px' }}>Réseaux sociaux</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <ContactField icon={Facebook} label="Facebook" field="facebook" placeholder="https://facebook.com/..." color="#1877F2" />
+            <ContactField icon={Instagram} label="Instagram" field="instagram" placeholder="https://instagram.com/..." color="#E1306C" />
+            <ContactField icon={Globe} label="TikTok" field="tiktok" placeholder="https://tiktok.com/@..." color="#010101" />
+            <ContactField icon={Globe} label="Snapchat" field="snapchat" placeholder="https://snapchat.com/add/..." color="#FFFC00" />
           </div>
         </div>
 
-        {saved && (
-          <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', fontSize: 12, fontWeight: 700, padding: '10px 16px', borderRadius: 10 }}>
-            Contacts enregistrés !
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 18, marginTop: 10 }}>
+          <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--silver-400)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 14px' }}>Contact direct</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <ContactField icon={Send} label="Telegram" field="telegram" placeholder="https://t.me/..." color="#2CA5E0" />
+            <ContactField icon={PhoneCall} label="WhatsApp" field="whatsapp" placeholder="+213..." color="#25D366" />
+            <ContactField icon={Mail} label="Email" field="email" placeholder="contact@..." color="var(--gold)" />
+            <ContactField icon={PhoneCall} label="Téléphone" field="phone" placeholder="0555..." />
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0, marginTop: 22, background: 'rgba(201,168,76,0.1)', border: '1px solid rgba(201,168,76,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <MapPin size={17} color="var(--gold)" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label className="lux-label">Adresse</label>
+                <textarea
+                  value={form.address || ''}
+                  onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+                  rows={3} className="lux-input" style={{ marginTop: 6, resize: 'vertical' }}
+                  placeholder="Adresse complète du magasin"
+                />
+              </div>
+            </div>
           </div>
-        )}
+        </div>
 
-        <button onClick={handleSave} className="btn-gold" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 0', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+        <AnimatePresence>
+          {saved && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+              style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', fontSize: 12, fontWeight: 700, padding: '10px 16px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+              <CheckCircle size={14} /> Contacts enregistrés avec succès
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <button onClick={handleSave} className="btn-gold"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '13px 0', borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 8 }}>
           <Save size={15} /> Enregistrer les contacts
         </button>
       </div>
@@ -978,7 +1545,8 @@ const ContactsTab: React.FC = () => {
   );
 };
 
-// ==================== SITE SETTINGS TAB ====================
+// ─── SITE SETTINGS TAB ────────────────────────────────────────────────────────
+
 const SiteSettingsTab: React.FC = () => {
   const { settings, updateSettings } = useApp();
   const [storeName, setStoreName] = useState(settings.storeName || '');
@@ -997,40 +1565,72 @@ const SiteSettingsTab: React.FC = () => {
   const handleSave = () => {
     updateSettings({ storeName, slogan, logo });
     setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setTimeout(() => setSaved(false), 3000);
   };
 
   return (
-    <div style={{ maxWidth: 560 }}>
-      <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--silver-100)', marginBottom: 20 }}>Paramètres du Site Vitrine</h2>
-      <div className="lux-card" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ maxWidth: 580 }}>
+      <h2 style={{ fontSize: 17, fontWeight: 800, color: 'var(--silver-100)', marginBottom: 20 }}>Paramètres du Site Vitrine</h2>
+      <div className="lux-card" style={{ padding: 28, display: 'flex', flexDirection: 'column', gap: 22 }}>
+
+        {/* Logo */}
         <div>
-          <label className="lux-label">Logo</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 10 }}>
-            <div style={{ width: 72, height: 72, borderRadius: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-              {logo ? <img src={logo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="logo" /> : <Gem size={26} color="var(--silver-400)" />}
+          <label className="lux-label" style={{ marginBottom: 12, display: 'block' }}>Logo du magasin</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+            <div
+              onClick={() => fileRef.current?.click()}
+              style={{
+                width: 80, height: 80, borderRadius: 20, flexShrink: 0,
+                background: logo ? 'transparent' : 'rgba(201,168,76,0.06)',
+                border: `2px dashed ${logo ? 'var(--gold)' : 'var(--border)'}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                overflow: 'hidden', cursor: 'pointer', transition: 'border-color 0.2s',
+              }}
+            >
+              {logo ? (
+                <img src={logo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="logo" />
+              ) : (
+                <Gem size={28} color="var(--silver-400)" />
+              )}
             </div>
-            <button onClick={() => fileRef.current?.click()} className="btn-silver" style={{ padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Choisir un logo</button>
-            {logo && <button onClick={() => setLogo('')} className="btn-outline" style={{ padding: '8px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Retirer</button>}
-            <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImage} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button onClick={() => fileRef.current?.click()} className="btn-silver"
+                style={{ padding: '8px 18px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                Choisir un logo
+              </button>
+              {logo && (
+                <button onClick={() => setLogo('')} className="btn-outline"
+                  style={{ padding: '8px 14px', borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                  Supprimer
+                </button>
+              )}
+            </div>
           </div>
+          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImage} />
         </div>
+
         <div>
           <label className="lux-label">Nom du magasin</label>
-          <input value={storeName} onChange={e => setStoreName(e.target.value)} className="lux-input" style={{ marginTop: 6 }} />
+          <input value={storeName} onChange={e => setStoreName(e.target.value)} className="lux-input" style={{ marginTop: 6 }} placeholder="Ex: Bijouterie Luxor" />
         </div>
+
         <div>
-          <label className="lux-label">Slogan / Description</label>
-          <textarea value={slogan} onChange={e => setSlogan(e.target.value)} rows={3} className="lux-input" style={{ marginTop: 6, resize: 'none' }} />
+          <label className="lux-label">Slogan / Description courte</label>
+          <textarea value={slogan} onChange={e => setSlogan(e.target.value)} rows={3} className="lux-input"
+            style={{ marginTop: 6, resize: 'vertical' }} placeholder="Ex: Bijoux en argent 925 fait main..." />
         </div>
 
-        {saved && (
-          <div style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', fontSize: 12, fontWeight: 700, padding: '10px 16px', borderRadius: 10 }}>
-            Paramètres enregistrés !
-          </div>
-        )}
+        <AnimatePresence>
+          {saved && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+              style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', fontSize: 12, fontWeight: 700, padding: '10px 16px', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <CheckCircle size={14} /> Paramètres enregistrés avec succès
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <button onClick={handleSave} className="btn-gold" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 0', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+        <button onClick={handleSave} className="btn-gold"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '13px 0', borderRadius: 14, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
           <Save size={15} /> Sauvegarder
         </button>
       </div>
@@ -1038,10 +1638,20 @@ const SiteSettingsTab: React.FC = () => {
   );
 };
 
-// ==================== MAIN COMPONENT ====================
+// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
+
 const WebsiteManagement: React.FC = () => {
   const shouldReduce = useReducedMotion();
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('offers');
+  const { webOffers, webSpecialOffers, webDeliveryCompanies } = useApp();
+
+  const counts: Record<SubTab, number | null> = {
+    offers: webOffers.length,
+    specialOffers: webSpecialOffers.length,
+    delivery: webDeliveryCompanies.length,
+    contacts: null,
+    siteSettings: null,
+  };
 
   const renderSubTab = () => {
     switch (activeSubTab) {
@@ -1058,14 +1668,14 @@ const WebsiteManagement: React.FC = () => {
       initial={shouldReduce ? false : { opacity: 0, y: 14, scale: 0.995 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] as any }}
-      style={{ display: 'flex', flexDirection: 'column', gap: 32 }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 28 }}
     >
-      {/* Page header */}
+      {/* Page Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
         <div>
           <div className="silver-line" />
           <h1 className="section-title">Gestion Site Web</h1>
-          <p className="section-subtitle">Gérez vos offres, livraisons et paramètres du site vitrine</p>
+          <p className="section-subtitle">Gérez vos offres, livraisons, contacts et paramètres du site vitrine</p>
         </div>
       </div>
 
@@ -1076,18 +1686,37 @@ const WebsiteManagement: React.FC = () => {
             key={tab.id}
             className={`lux-tab${activeSubTab === tab.id ? ' active' : ''}`}
             onClick={() => setActiveSubTab(tab.id)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 7 }}
           >
-            <tab.icon size={15} />
-            {tab.label}
+            <tab.icon size={14} />
+            <span>{tab.label}</span>
+            {counts[tab.id] !== null && counts[tab.id]! > 0 && (
+              <span style={{
+                fontSize: 10, fontWeight: 800, padding: '1px 6px', borderRadius: 6, marginLeft: 2,
+                background: activeSubTab === tab.id ? 'rgba(201,168,76,0.25)' : 'var(--border)',
+                color: activeSubTab === tab.id ? 'var(--gold)' : 'var(--silver-400)',
+              }}>
+                {counts[tab.id]}
+              </span>
+            )}
           </button>
         ))}
       </div>
 
       {/* Tab content */}
-      <div className="lux-card">
-        {renderSubTab()}
-      </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeSubTab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.18 }}
+          className="lux-card"
+          style={{ padding: 28 }}
+        >
+          {renderSubTab()}
+        </motion.div>
+      </AnimatePresence>
     </motion.div>
   );
 };

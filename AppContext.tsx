@@ -270,6 +270,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     const load = async () => {
       try {
+        // Wait for Supabase to finish refreshing any stored session before
+        // making data requests. Without this, a hot-reload or page refresh
+        // can fire queries while the client still holds an expired JWT,
+        // causing every request to return 401.
+        const { error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          await supabase.auth.signOut();
+        }
+
         const [
           stRes, supRes, purRes, saleRes, wsRes, cmdRes, wrkRes, advRes, absRes, payRes,
           delRes, expRes, debtRes, repRes, cliRes, cpRes, meltRes, silRes,
@@ -488,6 +497,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     };
     load();
+
+    // Re-run load whenever the Supabase auth session changes so that
+    // a sign-in, sign-out, or automatic token refresh always produces
+    // a fresh, authenticated set of data requests (no more 401s after
+    // a session refresh races with the initial load).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        load();
+      }
+      if (event === 'SIGNED_OUT') {
+        load();
+      }
+    });
+
+    return () => { subscription.unsubscribe(); };
   }, []);
 
   // ─── SETTINGS ROW BUILDER ────────────────────────────────────────────────
