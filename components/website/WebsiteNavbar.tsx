@@ -96,7 +96,7 @@ const WebsiteNavbar: React.FC<WebsiteNavbarProps> = ({
         dir={lang === 'ar' ? 'rtl' : 'ltr'}
       >
         <div style={{
-          maxWidth: '1400px', margin: '0 auto', padding: '0 32px', height: '100%',
+          maxWidth: '1400px', margin: '0 auto', padding: '0 clamp(12px, 4vw, 32px)', height: '100%',
           display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: '24px',
         }}>
           {/* LEFT */}
@@ -200,51 +200,52 @@ const WebsiteNavbar: React.FC<WebsiteNavbarProps> = ({
               </motion.button>
             ))}
 
-            {/* Theme toggle — Sun/Moon */}
-            <motion.button
-              onClick={() => setTheme(isDark ? 'light' : 'dark')}
-              whileHover={shouldReduce ? {} : { scale: 1.08 }}
-              whileTap={{ scale: 0.9 }}
-              title={isDark ? 'Mode Clair' : 'Mode Sombre'}
-              style={{
-                width: 36, height: 36, borderRadius: '50%',
-                background: isDark ? 'rgba(201,168,76,0.1)' : 'rgba(0,0,0,0.06)',
-                border: isDark ? '1px solid rgba(201,168,76,0.2)' : '1px solid rgba(0,0,0,0.1)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: isDark ? MESSIKA_PALETTE.goldWarm : '#555',
-                cursor: 'pointer', transition: 'all 0.25s ease',
-              }}
-            >
-              <AnimatePresence mode="wait">
-                {isDark ? (
-                  <motion.div key="sun" initial={{ opacity: 0, rotate: -30 }} animate={{ opacity: 1, rotate: 0 }} exit={{ opacity: 0, rotate: 30 }} transition={{ duration: 0.2 }} style={{ display: 'flex' }}>
-                    <Sun size={15} />
-                  </motion.div>
-                ) : (
-                  <motion.div key="moon" initial={{ opacity: 0, rotate: 30 }} animate={{ opacity: 1, rotate: 0 }} exit={{ opacity: 0, rotate: -30 }} transition={{ duration: 0.2 }} style={{ display: 'flex' }}>
-                    <Moon size={15} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.button>
+            {/* Theme + lang toggles — desktop only (both live in the mobile bottom sheet) */}
+            <div className="hidden md:flex items-center" style={{ gap: 8 }}>
+              <motion.button
+                onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                whileHover={shouldReduce ? {} : { scale: 1.08 }}
+                whileTap={{ scale: 0.9 }}
+                title={isDark ? 'Mode Clair' : 'Mode Sombre'}
+                style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  background: isDark ? 'rgba(201,168,76,0.1)' : 'rgba(0,0,0,0.06)',
+                  border: isDark ? '1px solid rgba(201,168,76,0.2)' : '1px solid rgba(0,0,0,0.1)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: isDark ? MESSIKA_PALETTE.goldWarm : '#555',
+                  cursor: 'pointer', transition: 'all 0.25s ease',
+                }}
+              >
+                <AnimatePresence mode="wait">
+                  {isDark ? (
+                    <motion.div key="sun" initial={{ opacity: 0, rotate: -30 }} animate={{ opacity: 1, rotate: 0 }} exit={{ opacity: 0, rotate: 30 }} transition={{ duration: 0.2 }} style={{ display: 'flex' }}>
+                      <Sun size={15} />
+                    </motion.div>
+                  ) : (
+                    <motion.div key="moon" initial={{ opacity: 0, rotate: 30 }} animate={{ opacity: 1, rotate: 0 }} exit={{ opacity: 0, rotate: -30 }} transition={{ duration: 0.2 }} style={{ display: 'flex' }}>
+                      <Moon size={15} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.button>
 
-            {/* Language toggle */}
-            <motion.button
-              onClick={() => setLang(lang === 'fr' ? 'ar' : 'fr')}
-              whileHover={shouldReduce ? {} : { scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '4px',
-                fontSize: '11px', fontWeight: 600, fontFamily: MESSIKA_FONTS.body,
-                letterSpacing: '0.1em', color: isDark ? MESSIKA_PALETTE.textMuted : 'rgba(0,0,0,0.45)',
-                background: 'none', border: 'none', cursor: 'pointer', padding: '4px', transition: 'color 0.25s ease',
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = isDark ? '#fff' : '#0A0A0A'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = isDark ? MESSIKA_PALETTE.textMuted : 'rgba(0,0,0,0.45)'; }}
-            >
-              <Globe size={13} />
-              <span className="hidden sm:inline">{lang === 'fr' ? 'عربي' : 'FR'}</span>
-            </motion.button>
+              <motion.button
+                onClick={() => setLang(lang === 'fr' ? 'ar' : 'fr')}
+                whileHover={shouldReduce ? {} : { scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '4px',
+                  fontSize: '11px', fontWeight: 600, fontFamily: MESSIKA_FONTS.body,
+                  letterSpacing: '0.1em', color: isDark ? MESSIKA_PALETTE.textMuted : 'rgba(0,0,0,0.45)',
+                  background: 'none', border: 'none', cursor: 'pointer', padding: '4px', transition: 'color 0.25s ease',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = isDark ? '#fff' : '#0A0A0A'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = isDark ? MESSIKA_PALETTE.textMuted : 'rgba(0,0,0,0.45)'; }}
+              >
+                <Globe size={13} />
+                <span>{lang === 'fr' ? 'عربي' : 'FR'}</span>
+              </motion.button>
+            </div>
 
             {/* Cart */}
             <motion.button
