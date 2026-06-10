@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Package, Truck, ShoppingCart, Calculator,
   FileText, Warehouse, Wrench, Users, BarChart, Settings,
   LogOut, ChevronLeft, ChevronRight, Gem, CreditCard, Receipt,
-  Repeat, Flame, PiggyBank, Globe, ShoppingBag, UserPlus
+  Repeat, Flame, PiggyBank, Globe, ShoppingBag, UserPlus, X,
 } from 'lucide-react';
 import { useApp } from '../AppContext';
 import { translations } from '../translations';
@@ -15,6 +15,7 @@ interface SidebarProps {
   setActiveTab: (tab: string) => void;
   isCollapsed: boolean;
   setIsCollapsed: (collapsed: boolean) => void;
+  onMobileClose?: () => void;
 }
 
 const SectionLabel: React.FC<{ label: string; collapsed: boolean; delay?: number; theme?: string }> = ({ label, collapsed, delay = 0, theme = 'dark' }) => {
@@ -38,7 +39,7 @@ const SectionLabel: React.FC<{ label: string; collapsed: boolean; delay?: number
   );
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isCollapsed, setIsCollapsed }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isCollapsed, setIsCollapsed, onMobileClose }) => {
   const { user, language, setUser, settings, theme } = useApp();
   const t = translations[language];
   const isAdmin = user?.role === 'admin';
@@ -163,6 +164,26 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isCollapsed,
         </AnimatePresence>
       </motion.div>
 
+      {/* Mobile close button */}
+      {onMobileClose && (
+        <motion.button
+          onClick={onMobileClose}
+          whileTap={{ scale: 0.9 }}
+          style={{
+            position: 'absolute', top: 16,
+            [language === 'ar' ? 'left' : 'right']: 16,
+            width: 36, height: 36, borderRadius: '50%',
+            background: theme === 'dark' ? 'rgba(192,200,212,0.08)' : 'rgba(201,168,76,0.10)',
+            border: theme === 'dark' ? '1px solid rgba(192,200,212,0.15)' : '1px solid rgba(201,168,76,0.25)',
+            color: theme === 'dark' ? 'rgba(192,200,212,0.6)' : 'rgba(201,168,76,0.7)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', zIndex: 10,
+          }}
+        >
+          <X size={16} />
+        </motion.button>
+      )}
+
       {/* Separator */}
       <div style={{ height: 1, background: 'var(--border)', margin: '0 16px' }} />
 
@@ -209,7 +230,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isCollapsed,
                     transition={{ delay: sIdx * 0.04 + iIdx * 0.03, duration: 0.3 }}
                     className={`sidebar-item${isActive ? ' active' : ''}`}
                     title={isCollapsed ? item.label : ''}
-                    style={isCollapsed ? { justifyContent: 'center', padding: '11px 0' } : {}}
+                    style={isCollapsed
+                      ? { justifyContent: 'center', padding: '11px 0' }
+                      : { minHeight: onMobileClose ? 48 : undefined }
+                    }
                   >
                     <item.icon
                       size={18}

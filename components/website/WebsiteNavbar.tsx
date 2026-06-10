@@ -322,100 +322,177 @@ const WebsiteNavbar: React.FC<WebsiteNavbarProps> = ({
         </div>
       </motion.nav>
 
-      {/* Mobile drawer */}
+      {/* Mobile bottom sheet */}
       <AnimatePresence>
         {menuOpen && (
           <>
+            {/* Backdrop */}
             <motion.div
-              key="drawer-overlay"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              key="sheet-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
               onClick={() => setMenuOpen(false)}
-              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 48 }}
+              style={{
+                position: 'fixed', inset: 0, zIndex: 48,
+                background: isDark ? 'rgba(0,0,0,0.72)' : 'rgba(0,0,0,0.35)',
+                backdropFilter: 'blur(4px)',
+                WebkitBackdropFilter: 'blur(4px)',
+              }}
             />
+
+            {/* Sheet */}
             <motion.div
-              key="drawer"
-              initial={shouldReduce ? { opacity: 0 } : { x: lang === 'ar' ? '-100%' : '100%' }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={shouldReduce ? { opacity: 0 } : { x: lang === 'ar' ? '-100%' : '100%' }}
-              transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+              key="sheet"
+              initial={shouldReduce ? { opacity: 0 } : { y: '100%' }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={shouldReduce ? { opacity: 0 } : { y: '100%' }}
+              transition={{ type: 'spring', stiffness: 340, damping: 36 }}
               dir={lang === 'ar' ? 'rtl' : 'ltr'}
               style={{
-                position: 'fixed', top: 0,
-                [lang === 'ar' ? 'left' : 'right']: 0,
-                width: 'min(300px, 85vw)', height: '100vh',
-                background: isDark ? MESSIKA_PALETTE.obsidian : '#FAF8F5',
-                borderLeft: lang === 'ar' ? 'none' : `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}`,
-                borderRight: lang === 'ar' ? `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}` : 'none',
-                zIndex: 49, padding: '80px 32px 40px',
-                display: 'flex', flexDirection: 'column', gap: '8px',
+                position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 49,
+                background: isDark
+                  ? 'rgba(10,10,10,0.98)'
+                  : 'rgba(250,248,245,0.99)',
+                borderTop: `1px solid ${isDark ? 'rgba(201,168,76,0.18)' : 'rgba(0,0,0,0.08)'}`,
+                borderTopLeftRadius: 24, borderTopRightRadius: 24,
+                padding: '0 0 env(safe-area-inset-bottom)',
+                backdropFilter: 'blur(40px)',
+                WebkitBackdropFilter: 'blur(40px)',
+                boxShadow: isDark
+                  ? '0 -24px 80px rgba(0,0,0,0.8)'
+                  : '0 -8px 40px rgba(0,0,0,0.12)',
               }}
             >
-              {/* Circle logo in drawer */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
+              {/* Drag handle */}
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px' }}>
                 <div style={{
-                  ...circleStyle,
-                  background: isDark ? 'rgba(201,168,76,0.08)' : 'rgba(154,123,53,0.08)',
-                }}>
-                  {settings?.logo
-                    ? <img src={settings.logo} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
-                    : <span style={{ fontFamily: MESSIKA_FONTS.display, fontSize: '18px', fontWeight: 600, color: MESSIKA_PALETTE.goldWarm }}>
-                        {(settings?.storeName || 'B').charAt(0).toUpperCase()}
-                      </span>
-                  }
+                  width: 36, height: 4, borderRadius: 2,
+                  background: isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)',
+                }} />
+              </div>
+
+              {/* Brand row */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '12px 24px 16px',
+                borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ ...circleStyle, width: 36, height: 36 }}>
+                    {settings?.logo
+                      ? <img src={settings.logo} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                      : <span style={{ fontFamily: MESSIKA_FONTS.display, fontSize: 14, fontWeight: 600, color: MESSIKA_PALETTE.goldWarm }}>
+                          {(settings?.storeName || 'B').charAt(0).toUpperCase()}
+                        </span>
+                    }
+                  </div>
+                  <span style={{
+                    fontFamily: MESSIKA_FONTS.display, fontSize: 13, fontWeight: 600,
+                    color: isDark ? '#fff' : '#0A0A0A',
+                    letterSpacing: '0.18em', textTransform: 'uppercase',
+                  }}>
+                    {settings?.storeName || 'BIJOUTERIE'}
+                  </span>
                 </div>
-                <div style={{ fontFamily: MESSIKA_FONTS.display, fontSize: '14px', fontWeight: 600, color: isDark ? '#fff' : '#0A0A0A', letterSpacing: '0.2em', textTransform: 'uppercase' }}>
-                  {settings?.storeName || 'BIJOUTERIE'}
+
+                {/* Utility toggles */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <motion.button
+                    onClick={() => setTheme(isDark ? 'light' : 'dark')}
+                    whileTap={{ scale: 0.9 }}
+                    style={{
+                      width: 34, height: 34, borderRadius: '50%',
+                      background: isDark ? 'rgba(201,168,76,0.10)' : 'rgba(0,0,0,0.06)',
+                      border: isDark ? '1px solid rgba(201,168,76,0.22)' : '1px solid rgba(0,0,0,0.10)',
+                      color: isDark ? MESSIKA_PALETTE.goldWarm : '#555',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {isDark ? <Sun size={14} /> : <Moon size={14} />}
+                  </motion.button>
+                  <motion.button
+                    onClick={() => setLang(lang === 'fr' ? 'ar' : 'fr')}
+                    whileTap={{ scale: 0.9 }}
+                    style={{
+                      height: 34, padding: '0 12px', borderRadius: 17,
+                      background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+                      border: isDark ? '1px solid rgba(255,255,255,0.10)' : '1px solid rgba(0,0,0,0.10)',
+                      color: isDark ? MESSIKA_PALETTE.textSecondary : 'rgba(0,0,0,0.55)',
+                      display: 'flex', alignItems: 'center', gap: 5,
+                      fontSize: 11, fontWeight: 600, fontFamily: MESSIKA_FONTS.body,
+                      letterSpacing: '0.08em', cursor: 'pointer',
+                    }}
+                  >
+                    <Globe size={12} />
+                    {lang === 'fr' ? 'عربي' : 'FR'}
+                  </motion.button>
                 </div>
               </div>
 
-              {allLinks.map((link, i) => (
-                <motion.button
-                  key={link.id}
-                  initial={shouldReduce ? {} : { opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.06 + 0.1 }}
-                  onClick={() => { setCurrentPage(link.id); setMenuOpen(false); }}
-                  style={{
-                    textAlign: lang === 'ar' ? 'right' : 'left',
-                    padding: '14px 0',
-                    fontFamily: MESSIKA_FONTS.body, fontSize: '13px', fontWeight: 500,
-                    letterSpacing: '0.14em', textTransform: 'uppercase',
-                    color: currentPage === link.id ? MESSIKA_PALETTE.goldWarm : (isDark ? MESSIKA_PALETTE.textSecondary : 'rgba(0,0,0,0.6)'),
-                    background: 'none', border: 'none',
-                    borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'}`,
-                    cursor: 'pointer', width: '100%', transition: 'color 0.2s ease',
-                  }}
-                >
-                  {link.label}
-                </motion.button>
-              ))}
-
-              <div style={{ marginTop: 'auto', display: 'flex', gap: '12px', alignItems: 'center' }}>
-                <button
-                  onClick={() => setLang(lang === 'fr' ? 'ar' : 'fr')}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    fontSize: '11px', fontWeight: 600, fontFamily: MESSIKA_FONTS.body,
-                    color: isDark ? MESSIKA_PALETTE.textMuted : 'rgba(0,0,0,0.4)',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                  }}
-                >
-                  <Globe size={13} />
-                  {lang === 'fr' ? 'عربي' : 'FR'}
-                </button>
-                <button
-                  onClick={() => setTheme(isDark ? 'light' : 'dark')}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    fontSize: '11px', fontWeight: 600, fontFamily: MESSIKA_FONTS.body,
-                    color: isDark ? MESSIKA_PALETTE.textMuted : 'rgba(0,0,0,0.4)',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                  }}
-                >
-                  {isDark ? <Sun size={13} /> : <Moon size={13} />}
-                  {isDark ? (lang === 'fr' ? 'Mode Clair' : 'فاتح') : (lang === 'fr' ? 'Mode Sombre' : 'داكن')}
-                </button>
+              {/* Nav links */}
+              <div style={{ padding: '8px 16px 16px' }}>
+                {allLinks.map((link, i) => {
+                  const isActive = currentPage === link.id;
+                  return (
+                    <motion.button
+                      key={link.id}
+                      initial={shouldReduce ? {} : { opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04 + 0.05 }}
+                      onClick={() => { setCurrentPage(link.id); setMenuOpen(false); }}
+                      style={{
+                        width: '100%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '14px 12px',
+                        borderRadius: 12,
+                        fontFamily: MESSIKA_FONTS.body, fontSize: 14, fontWeight: isActive ? 600 : 500,
+                        letterSpacing: '0.1em', textTransform: 'uppercase',
+                        color: isActive ? MESSIKA_PALETTE.goldWarm : (isDark ? MESSIKA_PALETTE.textSecondary : 'rgba(0,0,0,0.62)'),
+                        background: isActive
+                          ? (isDark ? 'rgba(201,168,76,0.08)' : 'rgba(201,168,76,0.07)')
+                          : 'none',
+                        border: 'none', cursor: 'pointer',
+                        textAlign: lang === 'ar' ? 'right' : 'left',
+                        transition: 'background 0.15s, color 0.15s',
+                        marginBottom: 2,
+                      }}
+                    >
+                      <span>{link.label}</span>
+                      {isActive && (
+                        <div style={{
+                          width: 6, height: 6, borderRadius: '50%',
+                          background: MESSIKA_PALETTE.goldWarm, flexShrink: 0,
+                        }} />
+                      )}
+                    </motion.button>
+                  );
+                })}
               </div>
+
+              {/* Cart shortcut */}
+              {cartCount > 0 && (
+                <div style={{ padding: '0 16px 20px' }}>
+                  <motion.button
+                    onClick={() => { setCurrentPage('order'); setMenuOpen(false); }}
+                    whileTap={{ scale: 0.97 }}
+                    style={{
+                      width: '100%', padding: '14px 20px',
+                      background: 'linear-gradient(135deg, #C9A84C 0%, #E8C96A 50%, #C9A84C 100%)',
+                      border: 'none', borderRadius: 14,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                      fontFamily: MESSIKA_FONTS.body, fontSize: 13, fontWeight: 700,
+                      letterSpacing: '0.12em', textTransform: 'uppercase',
+                      color: '#0A0A0A', cursor: 'pointer',
+                    }}
+                  >
+                    <ShoppingCart size={16} />
+                    {lang === 'fr' ? `Mon panier (${cartCount})` : `سلتي (${cartCount})`}
+                  </motion.button>
+                </div>
+              )}
             </motion.div>
           </>
         )}

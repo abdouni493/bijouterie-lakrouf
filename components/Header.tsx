@@ -29,19 +29,19 @@ const Header: React.FC<HeaderProps> = ({ activeTab, toggleSidebar, toggleMobileM
   return (
     <header
       style={{
-        height: 64,
-        background: theme === 'dark' ? 'rgba(13,17,23,0.92)' : 'rgba(250,247,242,0.92)',
+        height: 56,
+        background: theme === 'dark' ? 'rgba(13,17,23,0.94)' : 'rgba(250,247,242,0.96)',
         backdropFilter: 'blur(24px) saturate(180%)',
         WebkitBackdropFilter: 'blur(24px) saturate(180%)',
         borderBottom: theme === 'dark' ? '1px solid rgba(192,200,212,0.10)' : '1px solid rgba(201,168,76,0.25)',
         position: 'sticky',
         top: 0,
         zIndex: 40,
-        padding: '0 28px',
+        padding: '0 clamp(12px, 4vw, 28px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: 16,
+        gap: 12,
       }}
     >
       {/* Shimmer bottom line */}
@@ -81,10 +81,10 @@ const Header: React.FC<HeaderProps> = ({ activeTab, toggleSidebar, toggleMobileM
             }}
           />
           <div>
-            <h2 style={{ fontSize: 18, fontWeight: 800, color: theme === 'dark' ? '#F0F4F8' : '#5A4A3A', letterSpacing: '-0.03em', lineHeight: 1.2, margin: 0 }}>
+            <h2 style={{ fontSize: 'clamp(15px,4vw,18px)', fontWeight: 800, color: theme === 'dark' ? '#F0F4F8' : '#5A4A3A', letterSpacing: '-0.03em', lineHeight: 1.2, margin: 0 }}>
               {t[activeTab as keyof typeof t] as string || activeTab}
             </h2>
-            <p style={{ fontSize: 10, fontWeight: 600, color: theme === 'dark' ? 'rgba(192,200,212,0.4)' : 'rgba(201,168,76,0.6)', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>
+            <p className="hidden sm:block" style={{ fontSize: 10, fontWeight: 600, color: theme === 'dark' ? 'rgba(192,200,212,0.4)' : 'rgba(201,168,76,0.6)', letterSpacing: '0.12em', textTransform: 'uppercase', margin: 0 }}>
               Espace de Gestion
             </p>
           </div>
@@ -92,7 +92,7 @@ const Header: React.FC<HeaderProps> = ({ activeTab, toggleSidebar, toggleMobileM
       </div>
 
       {/* Right: search + theme toggle + notif + user */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         {/* Search bar */}
         <div className="hidden lg:flex" style={{
           display: 'flex', alignItems: 'center', gap: 10,
@@ -269,7 +269,7 @@ const Header: React.FC<HeaderProps> = ({ activeTab, toggleSidebar, toggleMobileM
         </div>
 
         {/* User area */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingLeft: 16, borderLeft: theme === 'dark' ? '1px solid var(--border)' : '1px solid rgba(201,168,76,0.25)', cursor: 'default' }}>
+        <div className="flex items-center" style={{ gap: 'clamp(6px,2vw,12px)', paddingLeft: 'clamp(8px,2vw,16px)', borderLeft: theme === 'dark' ? '1px solid var(--border)' : '1px solid rgba(201,168,76,0.25)', cursor: 'default' }}>
           <div className="hidden sm:block" style={{ textAlign: 'right' }}>
             <p style={{ fontSize: 14, fontWeight: 700, color: theme === 'dark' ? '#F0F4F8' : '#5A4A3A', margin: 0, lineHeight: 1.3 }}>{user?.username}</p>
             <span className={user?.role === 'admin' ? 'badge badge-platinum' : 'badge badge-info'} style={{ fontSize: 10, padding: '2px 8px', marginTop: 3 }}>
