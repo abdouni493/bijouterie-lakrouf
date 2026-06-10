@@ -1202,20 +1202,33 @@ const DeliveryTab: React.FC = () => {
   const [editingCompany, setEditingCompany] = useState<WebDeliveryCompany | null>(null);
   const [managingCompany, setManagingCompany] = useState<WebDeliveryCompany | null>(null);
   const [companyForm, setCompanyForm] = useState({ name: '', phone: '' });
+
+  // Wilaya price form state
   const [selectedWilayaCode, setSelectedWilayaCode] = useState<number | ''>('');
-  const [communesInput, setCommunesInput] = useState('');
-  const [toBureau, setToBureau] = useState(0);
-  const [toHome, setToHome] = useState(0);
+  const [selectedCommunes, setSelectedCommunes] = useState<string[]>([]);
+  const [toBureau, setToBureau] = useState<string>('');
+  const [toHome, setToHome] = useState<string>('');
   const [toast, setToast] = useState('');
 
+  // When a wilaya is chosen, populate commune checkboxes and reset selection
   const handleWilayaSelect = (code: number | '') => {
     setSelectedWilayaCode(code);
-    if (code) {
-      const wilaya = ALGERIA_WILAYAS.find(w => w.code === code);
-      if (wilaya?.communes?.length) setCommunesInput(wilaya.communes.join(', '));
-    } else {
-      setCommunesInput('');
-    }
+    setSelectedCommunes([]);
+  };
+
+  const toggleCommune = (commune: string) => {
+    setSelectedCommunes(prev =>
+      prev.includes(commune) ? prev.filter(c => c !== commune) : [...prev, commune]
+    );
+  };
+
+  const selectAllCommunes = () => {
+    if (!selectedWilayaCode) return;
+    const wilaya = ALGERIA_WILAYAS.find(w => w.code === selectedWilayaCode);
+    if (!wilaya) return;
+    setSelectedCommunes(
+      selectedCommunes.length === wilaya.communes.length ? [] : [...wilaya.communes]
+    );
   };
 
   const saveCompany = () => {
@@ -1232,38 +1245,53 @@ const DeliveryTab: React.FC = () => {
     setTimeout(() => setToast(''), 3000);
   };
 
+  const resetPriceForm = () => {
+    setSelectedWilayaCode('');
+    setSelectedCommunes([]);
+    setToBureau('');
+    setToHome('');
+  };
+
+  // Allow MULTIPLE price entries for the same wilaya — do NOT deduplicate
   const addWilaya = () => {
     if (!managingCompany || !selectedWilayaCode) return;
     const wilaya = ALGERIA_WILAYAS.find(w => w.code === selectedWilayaCode);
     if (!wilaya) return;
-    const communes = communesInput.split(',').map(s => s.trim()).filter(Boolean);
-    const newWilaya: WebWilayaPrice = { wilayaCode: wilaya.code, wilayaName: wilaya.name, communes, toBureau, toHome };
-    const updated: WebDeliveryCompany = { ...managingCompany, wilayas: [...managingCompany.wilayas.filter(w => w.wilayaCode !== wilaya.code), newWilaya] };
-    updateWebDeliveryCompany(managingCompany.id, { wilayas: updated.wilayas });
-    setManagingCompany(updated);
-    setSelectedWilayaCode('');
-    setCommunesInput('');
-    setToBureau(0);
-    setToHome(0);
-    setToast('Wilaya ajoutée !');
+    if (selectedCommunes.length === 0) { setToast('Sélectionnez au moins une commune'); setTimeout(() => setToast(''), 2500); return; }
+    const newEntry: WebWilayaPrice = {
+      wilayaCode: wilaya.code,
+      wilayaName: wilaya.name,
+      communes: selectedCommunes,
+      toBureau: Number(toBureau) || 0,
+      toHome: Number(toHome) || 0,
+    };
+    const updatedWilayas = [...managingCompany.wilayas, newEntry];
+    updateWebDeliveryCompany(managingCompany.id, { wilayas: updatedWilayas });
+    setManagingCompany({ ...managingCompany, wilayas: updatedWilayas });
+    resetPriceForm();
+    setToast('Tarif ajouté !');
     setTimeout(() => setToast(''), 2500);
   };
 
-  const deleteWilaya = (code: number) => {
+  // Delete by index so duplicate wilaya entries can be removed independently
+  const deleteWilayaByIndex = (index: number) => {
     if (!managingCompany) return;
-    const wilayas = managingCompany.wilayas.filter(w => w.wilayaCode !== code);
+    const wilayas = managingCompany.wilayas.filter((_, i) => i !== index);
     updateWebDeliveryCompany(managingCompany.id, { wilayas });
     setManagingCompany({ ...managingCompany, wilayas });
   };
 
   const totalWilayas = webDeliveryCompanies.reduce((s, c) => s + c.wilayas.length, 0);
+  const currentWilayaData = selectedWilayaCode
+    ? ALGERIA_WILAYAS.find(w => w.code === selectedWilayaCode)
+    : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       {webDeliveryCompanies.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
           <StatCard icon={Truck} label="Sociétés" value={webDeliveryCompanies.length} />
-          <StatCard icon={MapPin} label="Wilayas couvertes" value={totalWilayas} color="#10b981" />
+          <StatCard icon={MapPin} label="Tarifs configurés" value={totalWilayas} color="#10b981" />
         </div>
       )}
 
@@ -1291,18 +1319,18 @@ const DeliveryTab: React.FC = () => {
                 </p>
               </div>
               <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 8, background: 'rgba(201,168,76,0.12)', color: 'var(--gold)' }}>
-                {c.wilayas.length} wilaya{c.wilayas.length !== 1 ? 's' : ''}
+                {c.wilayas.length} tarif{c.wilayas.length !== 1 ? 's' : ''}
               </span>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => { setEditingCompany(c); setCompanyForm({ name: c.name, phone: c.phone }); setShowCreate(true); }} className="btn-icon" title="Modifier"><Edit2 size={14} /></button>
               <button onClick={() => { if (confirm('Supprimer cette société ?')) { deleteWebDeliveryCompany(c.id); setToast('Société supprimée'); setTimeout(() => setToast(''), 2500); } }} className="btn-icon danger" title="Supprimer"><Trash2 size={14} /></button>
               <button
-                onClick={() => setManagingCompany(c)}
+                onClick={() => { setManagingCompany(c); resetPriceForm(); }}
                 className="btn-silver"
                 style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
               >
-                <Truck size={13} /> Gérer les wilayas
+                <Truck size={13} /> Gérer les prix
               </button>
             </div>
           </div>
@@ -1319,7 +1347,7 @@ const DeliveryTab: React.FC = () => {
         </div>
       )}
 
-      {/* Create/Edit Modal */}
+      {/* Create/Edit Company Modal */}
       <AnimatePresence>
         {showCreate && (
           <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCreate(false)}>
@@ -1363,11 +1391,12 @@ const DeliveryTab: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Manage Wilayas Modal */}
+      {/* Manage Delivery Prices Modal */}
       <AnimatePresence>
         {managingCompany && (
           <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setManagingCompany(null)}>
-            <motion.div className="modal-box" style={{ maxWidth: 720, maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+            <motion.div className="modal-box"
+              style={{ maxWidth: 780, width: '96vw', maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
               initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 10 }} transition={{ type: 'spring', stiffness: 320, damping: 28 }}
               onClick={e => e.stopPropagation()}
@@ -1376,42 +1405,155 @@ const DeliveryTab: React.FC = () => {
                 <div>
                   <div className="silver-line" style={{ marginBottom: 6 }} />
                   <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--silver-100)', letterSpacing: '-0.03em', margin: 0 }}>Prix de livraison</h2>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--silver-300)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '4px 0 0' }}>{managingCompany.name}</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--silver-300)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '4px 0 0' }}>
+                    {managingCompany.name} — {managingCompany.wilayas.length} tarif{managingCompany.wilayas.length !== 1 ? 's' : ''} configuré{managingCompany.wilayas.length !== 1 ? 's' : ''}
+                  </p>
                 </div>
                 <button onClick={() => setManagingCompany(null)} className="btn-icon"><X size={18} /></button>
               </div>
 
-              <div className="modal-body" style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
-                {/* Add form */}
-                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--silver-200)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>Ajouter / Modifier un wilaya</p>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div className="modal-body" style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 22 }}>
+
+                {/* ── Add price form ── */}
+                <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)', borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(201,168,76,0.15)', border: '1px solid rgba(201,168,76,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Plus size={14} color="var(--gold)" />
+                    </div>
+                    <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
+                      Ajouter un nouveau tarif
+                    </p>
+                  </div>
+
+                  {/* Step 1: wilaya select */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     <div>
                       <label className="lux-label">Wilaya</label>
-                      <select value={selectedWilayaCode} onChange={e => handleWilayaSelect(e.target.value ? +e.target.value : '')} className="lux-select" style={{ marginTop: 6 }}>
-                        <option value="">-- Choisir --</option>
-                        {ALGERIA_WILAYAS.map(w => <option key={w.code} value={w.code}>{w.code}. {w.name}</option>)}
+                      <select
+                        value={selectedWilayaCode}
+                        onChange={e => handleWilayaSelect(e.target.value ? +e.target.value : '')}
+                        className="lux-select"
+                        style={{ marginTop: 6 }}
+                      >
+                        <option value="">-- Choisir une wilaya --</option>
+                        {ALGERIA_WILAYAS.map(w => (
+                          <option key={w.code} value={w.code}>{w.code}. {w.name}</option>
+                        ))}
                       </select>
                     </div>
-                    <div>
-                      <label className="lux-label">Communes (virgule)</label>
-                      <input value={communesInput} onChange={e => setCommunesInput(e.target.value)} placeholder="Alger, Sétif..." className="lux-input" style={{ marginTop: 6 }} />
-                    </div>
-                    <div>
-                      <label className="lux-label">Prix bureau (DA)</label>
-                      <input type="number" value={toBureau || ''} onChange={e => setToBureau(+e.target.value)} className="lux-input" style={{ marginTop: 6 }} placeholder="0" />
-                    </div>
-                    <div>
-                      <label className="lux-label">Prix domicile (DA)</label>
-                      <input type="number" value={toHome || ''} onChange={e => setToHome(+e.target.value)} className="lux-input" style={{ marginTop: 6 }} placeholder="0" />
+
+                    {/* Prices side by side */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      <div>
+                        <label className="lux-label">Bureau (DA)</label>
+                        <input
+                          type="number" value={toBureau}
+                          onChange={e => setToBureau(e.target.value)}
+                          className="lux-input" style={{ marginTop: 6 }} placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="lux-label">Domicile (DA)</label>
+                        <input
+                          type="number" value={toHome}
+                          onChange={e => setToHome(e.target.value)}
+                          className="lux-input" style={{ marginTop: 6 }} placeholder="0"
+                        />
+                      </div>
                     </div>
                   </div>
-                  <button onClick={addWilaya} className="btn-gold" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start' }}>
-                    <Plus size={14} /> Ajouter ce wilaya
+
+                  {/* Step 2: communes checkboxes (shown once wilaya is selected) */}
+                  <AnimatePresence>
+                    {currentWilayaData && (
+                      <motion.div
+                        key={selectedWilayaCode}
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.22 }}
+                        style={{ overflow: 'hidden' }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                          <label className="lux-label" style={{ margin: 0 }}>
+                            Communes de {currentWilayaData.name}
+                            <span style={{ marginLeft: 8, color: 'var(--silver-400)', fontWeight: 500 }}>
+                              ({selectedCommunes.length}/{currentWilayaData.communes.length} sélectionnées)
+                            </span>
+                          </label>
+                          <button
+                            onClick={selectAllCommunes}
+                            style={{
+                              fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 8, cursor: 'pointer',
+                              background: selectedCommunes.length === currentWilayaData.communes.length
+                                ? 'rgba(201,168,76,0.18)' : 'transparent',
+                              border: `1px solid ${selectedCommunes.length === currentWilayaData.communes.length ? 'var(--gold)' : 'var(--border)'}`,
+                              color: selectedCommunes.length === currentWilayaData.communes.length ? 'var(--gold)' : 'var(--silver-300)',
+                              transition: 'all 0.2s',
+                            }}
+                          >
+                            {selectedCommunes.length === currentWilayaData.communes.length ? 'Désélectionner tout' : 'Sélectionner tout'}
+                          </button>
+                        </div>
+                        <div style={{
+                          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8,
+                          maxHeight: 200, overflowY: 'auto', padding: '4px 2px',
+                        }}>
+                          {currentWilayaData.communes.map(commune => {
+                            const checked = selectedCommunes.includes(commune);
+                            return (
+                              <label
+                                key={commune}
+                                onClick={() => toggleCommune(commune)}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px',
+                                  borderRadius: 10, cursor: 'pointer', userSelect: 'none',
+                                  background: checked ? 'rgba(201,168,76,0.12)' : 'rgba(255,255,255,0.03)',
+                                  border: `1px solid ${checked ? 'rgba(201,168,76,0.4)' : 'var(--border)'}`,
+                                  transition: 'all 0.15s',
+                                }}
+                              >
+                                <div style={{
+                                  width: 16, height: 16, borderRadius: 5, flexShrink: 0,
+                                  background: checked ? 'var(--gold)' : 'transparent',
+                                  border: `2px solid ${checked ? 'var(--gold)' : 'var(--border)'}`,
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                  transition: 'all 0.15s',
+                                }}>
+                                  {checked && (
+                                    <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
+                                      <path d="M1 3.5L3.5 6L8 1" stroke="#0A0A0A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                  )}
+                                </div>
+                                <span style={{ fontSize: 12, fontWeight: checked ? 700 : 500, color: checked ? 'var(--silver-100)' : 'var(--silver-300)' }}>
+                                  {commune}
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <button
+                    onClick={addWilaya}
+                    disabled={!selectedWilayaCode || selectedCommunes.length === 0}
+                    className="btn-gold"
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '10px 20px', borderRadius: 12, fontSize: 13, fontWeight: 700,
+                      cursor: (!selectedWilayaCode || selectedCommunes.length === 0) ? 'not-allowed' : 'pointer',
+                      opacity: (!selectedWilayaCode || selectedCommunes.length === 0) ? 0.5 : 1,
+                      alignSelf: 'flex-start', transition: 'opacity 0.2s',
+                    }}
+                  >
+                    <Plus size={15} /> Ajouter ce tarif
                   </button>
                 </div>
 
-                {/* Wilayas table */}
+                {/* ── Existing price rows ── */}
                 {managingCompany.wilayas.length > 0 ? (
                   <div style={{ overflowX: 'auto' }}>
                     <table className="lux-table">
@@ -1425,20 +1567,42 @@ const DeliveryTab: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {managingCompany.wilayas.sort((a, b) => a.wilayaCode - b.wilayaCode).map(w => (
-                          <tr key={w.wilayaCode}>
-                            <td style={{ fontWeight: 700, color: 'var(--silver-100)' }}>{w.wilayaCode}. {w.wilayaName}</td>
-                            <td style={{ fontSize: 11, color: 'var(--silver-300)', maxWidth: 200 }}>{w.communes.slice(0, 4).join(', ')}{w.communes.length > 4 ? ` +${w.communes.length - 4}` : ''}</td>
-                            <td style={{ textAlign: 'right', color: 'var(--gold)', fontWeight: 700 }}>{w.toBureau.toLocaleString()} DA</td>
-                            <td style={{ textAlign: 'right', color: 'var(--silver-200)', fontWeight: 700 }}>{w.toHome.toLocaleString()} DA</td>
-                            <td><button onClick={() => deleteWilaya(w.wilayaCode)} className="btn-icon danger"><Trash2 size={13} /></button></td>
+                        {managingCompany.wilayas.map((w, idx) => (
+                          <tr key={idx}>
+                            <td style={{ fontWeight: 700, color: 'var(--silver-100)', whiteSpace: 'nowrap' }}>
+                              {w.wilayaCode}. {w.wilayaName}
+                            </td>
+                            <td style={{ maxWidth: 240 }}>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                {w.communes.map(c => (
+                                  <span key={c} style={{
+                                    fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 6,
+                                    background: 'rgba(255,255,255,0.06)', color: 'var(--silver-300)',
+                                    border: '1px solid var(--border)',
+                                  }}>{c}</span>
+                                ))}
+                              </div>
+                            </td>
+                            <td style={{ textAlign: 'right', color: 'var(--gold)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                              {w.toBureau.toLocaleString()} DA
+                            </td>
+                            <td style={{ textAlign: 'right', color: 'var(--silver-200)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                              {w.toHome.toLocaleString()} DA
+                            </td>
+                            <td>
+                              <button onClick={() => deleteWilayaByIndex(idx)} className="btn-icon danger" title="Supprimer ce tarif">
+                                <Trash2 size={13} />
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 ) : (
-                  <p style={{ color: 'var(--silver-400)', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>Aucun wilaya configuré.</p>
+                  <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--silver-400)', fontSize: 13 }}>
+                    Aucun tarif configuré. Utilisez le formulaire ci-dessus pour en ajouter.
+                  </div>
                 )}
               </div>
             </motion.div>

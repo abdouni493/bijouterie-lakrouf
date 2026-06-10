@@ -1426,7 +1426,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       pricing_mode: o.pricingMode, weight: o.weight, price_per_gram: o.pricePerGram,
       total_price: o.totalPrice, unit_price: o.unitPrice,
       show_quantity: o.showQuantity, quantity: o.quantity,
-      show_weight: o.showWeight ?? false,
       is_hidden: o.isHidden, created_at: createdAt,
     });
     if (error) { console.error('[addWebOffer]', error.message); return; }
@@ -1442,7 +1441,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       pricing_mode: merged.pricingMode, weight: merged.weight, price_per_gram: merged.pricePerGram,
       total_price: merged.totalPrice, unit_price: merged.unitPrice,
       show_quantity: merged.showQuantity, quantity: merged.quantity,
-      show_weight: merged.showWeight ?? false,
       is_hidden: merged.isHidden,
     }).eq('id', id);
     if (error) { console.error('[updateWebOffer]', error.message); return; }
@@ -1464,7 +1462,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       pricing_mode: o.pricingMode, weight: o.weight, price_per_gram: o.pricePerGram,
       unit_price: o.unitPrice, original_price: o.originalPrice, special_price: o.specialPrice,
       show_quantity: o.showQuantity, quantity: o.quantity,
-      show_weight: o.showWeight ?? false,
       is_hidden: o.isHidden, is_active: o.isActive,
       start_date: o.startDate, start_hour: o.startHour, end_date: o.endDate, end_hour: o.endHour,
       created_at: createdAt,
@@ -1482,7 +1479,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       pricing_mode: merged.pricingMode, weight: merged.weight, price_per_gram: merged.pricePerGram,
       unit_price: merged.unitPrice, original_price: merged.originalPrice, special_price: merged.specialPrice,
       show_quantity: merged.showQuantity, quantity: merged.quantity,
-      show_weight: merged.showWeight ?? false,
       is_hidden: merged.isHidden, is_active: merged.isActive,
       start_date: merged.startDate, start_hour: merged.startHour, end_date: merged.endDate, end_hour: merged.endHour,
     }).eq('id', id);
