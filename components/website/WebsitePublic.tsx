@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ShoppingCart } from 'lucide-react';
 import WebsiteNavbar from './WebsiteNavbar';
@@ -12,6 +12,7 @@ import PersonalizedOrderPage from './PersonalizedOrderPage';
 import ThankYouPage from './ThankYouPage';
 import { GlobalStyles } from './LuxuryComponents';
 import { MESSIKA_PALETTE, MESSIKA_FONTS, MESSIKA_GRADIENTS } from '../../utils/luxuryDesignSystem';
+import { useApp } from '../../AppContext';
 
 interface CartItem {
   offer: any;
@@ -27,6 +28,7 @@ const pageVariants = {
 const pageTransition = { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number] };
 
 const WebsitePublic: React.FC = () => {
+  const { webOffers, webSpecialOffers } = useApp();
   const [currentPage, setCurrentPage] = useState(() =>
     typeof window !== 'undefined' ? localStorage.getItem('websiteCurrentPage') || 'home' : 'home'
   );
@@ -36,10 +38,46 @@ const WebsitePublic: React.FC = () => {
   const [websiteTheme, setWebsiteTheme] = useState<'light' | 'dark'>('light');
   const [showCartBar, setShowCartBar] = useState(false);
   const isDark = websiteTheme === 'dark';
+  const urlHandled = useRef(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') localStorage.setItem('websiteCurrentPage', currentPage);
   }, [currentPage]);
+
+  // ── Deep-link handler: ?offer=<id>  or  ?special=<id> ───────────────────
+  // Runs each time offers load; once we find the item we stop checking.
+  useEffect(() => {
+    if (urlHandled.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const offerId   = params.get('offer');
+    const specialId = params.get('special');
+
+    if (!offerId && !specialId) {
+      urlHandled.current = true;
+      return;
+    }
+
+    if (offerId && webOffers.length > 0) {
+      urlHandled.current = true;
+      const found = webOffers.find(o => o.id === offerId && !o.isHidden);
+      if (found) {
+        setCart([{ offer: found, quantity: 1, isSpecial: false }]);
+        setCurrentPage('order');
+      }
+      window.history.replaceState({}, '', window.location.pathname);
+      return;
+    }
+
+    if (specialId && webSpecialOffers.length > 0) {
+      urlHandled.current = true;
+      const found = webSpecialOffers.find(o => o.id === specialId && !o.isHidden);
+      if (found) {
+        setCart([{ offer: found, quantity: 1, isSpecial: true }]);
+        setCurrentPage('order');
+      }
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [webOffers, webSpecialOffers]);
 
   const cartCount = cart.reduce((s, c) => s + c.quantity, 0);
 
