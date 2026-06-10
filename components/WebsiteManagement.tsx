@@ -148,12 +148,11 @@ const OfferFormModal: React.FC<OfferFormModalProps> = ({ open, onClose, editing,
             key={editing ? `edit-${(editing as any).id}` : `new-${isSpecial}`}
             className="modal-box"
             style={{
-              maxWidth: 720,
+              maxWidth: 680,
               width: '95vw',
               maxHeight: '90vh',
               display: 'flex',
               flexDirection: 'column',
-              borderLeft: '3px solid var(--gold)',
               overflow: 'hidden',
             }}
             initial={{ opacity: 0, y: 32, scale: 0.97 }}
@@ -434,7 +433,7 @@ const OffersTab: React.FC = () => {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--silver-100)', margin: 0 }}>Offres ({webOffers.length})</h2>
-        <button onClick={openCreate} className="btn-gold" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 14, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+        <button onClick={openCreate} className="btn-gold" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px', borderRadius: 16, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
           <Plus size={16} /> Nouvelle Offre
         </button>
       </div>
@@ -584,7 +583,7 @@ const SpecialOffersTab: React.FC = () => {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--silver-100)', margin: 0 }}>Offres Spéciales ({webSpecialOffers.length})</h2>
-        <button onClick={openCreate} className="btn-gold" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 14, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+        <button onClick={openCreate} className="btn-gold" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px', borderRadius: 16, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
           <Plus size={16} /> Nouvelle Offre Spéciale
         </button>
       </div>
@@ -753,7 +752,7 @@ const DeliveryTab: React.FC = () => {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <h2 style={{ fontSize: 18, fontWeight: 800, color: 'var(--silver-100)', margin: 0 }}>Sociétés de Livraison ({webDeliveryCompanies.length})</h2>
-        <button onClick={openCreate} className="btn-gold" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 14, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+        <button onClick={openCreate} className="btn-gold" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px', borderRadius: 16, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
           <Plus size={16} /> Nouvelle Société
         </button>
       </div>
