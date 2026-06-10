@@ -31,6 +31,7 @@ const OffersPage: React.FC<OffersPageProps> = ({ lang, cart, setCart, theme = 'd
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('default');
   const [cols, setCols] = useState<2 | 3>(3);
+  const [selectedForm, setSelectedForm] = useState<string | null>(null);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [selectedOffer, setSelectedOffer] = useState<any>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -62,12 +63,18 @@ const OffersPage: React.FC<OffersPageProps> = ({ lang, cart, setCart, theme = 'd
     subtitle: 'فضة خالصة 950',
   };
 
+  const availableForms = useMemo(() =>
+    [...new Set(webOffers.filter(o => !o.isHidden && o.form).map(o => o.form))],
+    [webOffers]
+  );
+
   const filtered = useMemo(() => {
     let list = webOffers.filter(o => !o.isHidden && o.name.toLowerCase().includes(search.toLowerCase()));
+    if (selectedForm) list = list.filter(o => o.form === selectedForm);
     if (sort === 'price_asc') list = [...list].sort((a, b) => (a.unitPrice ?? Infinity) - (b.unitPrice ?? Infinity));
     if (sort === 'price_desc') list = [...list].sort((a, b) => (b.unitPrice ?? -Infinity) - (a.unitPrice ?? -Infinity));
     return list;
-  }, [webOffers, search, sort]);
+  }, [webOffers, search, sort, selectedForm]);
 
   const addToCart = useCallback((offer: any) => {
     const existing = cart.find((ci: any) => ci.offer.id === offer.id);
@@ -230,7 +237,7 @@ const OffersPage: React.FC<OffersPageProps> = ({ lang, cart, setCart, theme = 'd
         <div style={{ height: 1, background: MESSIKA_GRADIENTS.sectionDivider, margin: '24px 0' }} />
       </div>
 
-      {/* Sticky search bar */}
+      {/* Sticky search + filter bar */}
       <div style={{
         position: 'sticky',
         top: '56px',
@@ -239,7 +246,7 @@ const OffersPage: React.FC<OffersPageProps> = ({ lang, cart, setCart, theme = 'd
         borderBottom: `1px solid ${tc.rowBorder}`,
         padding: '12px 0',
       }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 48px' }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 48px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div style={{ position: 'relative', maxWidth: '480px' }}>
             <Search size={16} style={{
               position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)',
@@ -282,6 +289,47 @@ const OffersPage: React.FC<OffersPageProps> = ({ lang, cart, setCart, theme = 'd
               )}
             </AnimatePresence>
           </div>
+
+          {/* Form filter chips */}
+          {availableForms.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }} className="hide-scrollbar">
+              <motion.button
+                onClick={() => setSelectedForm(null)}
+                whileHover={shouldReduce ? {} : { scale: 1.03 }}
+                whileTap={shouldReduce ? {} : { scale: 0.97 }}
+                style={{
+                  padding: '5px 14px',
+                  fontFamily: MESSIKA_FONTS.body, fontSize: '11px', fontWeight: 600,
+                  letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+                  background: selectedForm === null ? tc.sortActiveBg : 'transparent',
+                  border: `1px solid ${selectedForm === null ? tc.sortActiveBorder : tc.sortInactiveBorder}`,
+                  color: selectedForm === null ? tc.goldAccent : tc.textMuted,
+                  cursor: 'pointer', transition: 'all 0.2s ease', flexShrink: 0,
+                }}
+              >
+                {lang === 'fr' ? 'Tout' : 'الكل'}
+              </motion.button>
+              {availableForms.map(form => (
+                <motion.button
+                  key={form}
+                  onClick={() => setSelectedForm(selectedForm === form ? null : form)}
+                  whileHover={shouldReduce ? {} : { scale: 1.03 }}
+                  whileTap={shouldReduce ? {} : { scale: 0.97 }}
+                  style={{
+                    padding: '5px 14px',
+                    fontFamily: MESSIKA_FONTS.body, fontSize: '11px', fontWeight: 600,
+                    letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+                    background: selectedForm === form ? tc.sortActiveBg : 'transparent',
+                    border: `1px solid ${selectedForm === form ? tc.sortActiveBorder : tc.sortInactiveBorder}`,
+                    color: selectedForm === form ? tc.goldAccent : tc.textMuted,
+                    cursor: 'pointer', transition: 'all 0.2s ease', flexShrink: 0,
+                  }}
+                >
+                  {form}
+                </motion.button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -359,6 +407,8 @@ const OffersPage: React.FC<OffersPageProps> = ({ lang, cart, setCart, theme = 'd
         @media (max-width: 480px) {
           .offers-grid { grid-template-columns: 1fr !important; }
         }
+        .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
 
       {/* Modal */}

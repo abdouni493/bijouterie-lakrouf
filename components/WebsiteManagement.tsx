@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useApp } from '../AppContext';
 import {
@@ -38,6 +38,376 @@ function Toast({ msg, onClose }: { msg: string; onClose: () => void }) {
   );
 }
 
+// ---------- Toggle ----------
+const Toggle = ({ on, onToggle, label }: { on: boolean; onToggle: () => void; label: string }) => (
+  <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', userSelect: 'none' }}>
+    <div onClick={onToggle} style={{
+      width: 38, height: 21, borderRadius: 11, flexShrink: 0, position: 'relative', cursor: 'pointer',
+      background: on ? '#C9A84C' : 'var(--border)', transition: 'background 0.2s',
+    }}>
+      <div style={{ width: 17, height: 17, background: 'white', borderRadius: '50%', position: 'absolute', top: 2, left: on ? 19 : 2, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }} />
+    </div>
+    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--silver-200)' }}>{label}</span>
+  </label>
+);
+
+// ---------- OfferFormModal ----------
+interface OfferFormModalProps {
+  open: boolean;
+  onClose: () => void;
+  editing: WebOffer | WebSpecialOffer | null;
+  isSpecial: boolean;
+  onSave: (payload: any) => void;
+  silverTypes: any[];
+  shapes: string[];
+}
+
+const EMPTY_FORM = {
+  name: '', image: null as string | null, silverTypeId: '', calibre: '', form: '',
+  pricingMode: 'perGram' as 'perGram' | 'alaPiece',
+  weight: 0, pricePerGram: 0, totalPrice: 0, unitPrice: 0,
+  showQuantity: false, quantity: 0, showWeight: false,
+  isHidden: false,
+  // special-only:
+  originalPrice: 0, specialPrice: 0, isActive: false,
+  startDate: '', startHour: '', endDate: '', endHour: '',
+};
+
+const OfferFormModal: React.FC<OfferFormModalProps> = ({ open, onClose, editing, isSpecial, onSave, silverTypes, shapes }) => {
+  const [form, setForm] = useState({ ...EMPTY_FORM });
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) {
+      const o = editing as any;
+      setForm({
+        name: o.name ?? '',
+        image: o.image ?? null,
+        silverTypeId: o.silverTypeId ?? '',
+        calibre: o.calibre ?? '',
+        form: o.form ?? '',
+        pricingMode: o.pricingMode ?? 'perGram',
+        weight: o.weight ?? 0,
+        pricePerGram: o.pricePerGram ?? 0,
+        totalPrice: o.totalPrice ?? 0,
+        unitPrice: o.unitPrice ?? 0,
+        showQuantity: o.showQuantity ?? false,
+        quantity: o.quantity ?? 0,
+        showWeight: o.showWeight ?? false,
+        isHidden: o.isHidden ?? false,
+        originalPrice: o.originalPrice ?? 0,
+        specialPrice: o.specialPrice ?? 0,
+        isActive: o.isActive ?? false,
+        startDate: o.startDate ?? '',
+        startHour: o.startHour ?? '',
+        endDate: o.endDate ?? '',
+        endHour: o.endHour ?? '',
+      });
+    } else {
+      setForm({ ...EMPTY_FORM });
+    }
+  }, [editing, open]);
+
+  const calcTotal = (f: typeof form) =>
+    f.pricingMode === 'perGram' ? (f.weight || 0) * (f.pricePerGram || 0) : f.unitPrice || 0;
+
+  const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      const b64 = await toBase64(e.target.files[0]);
+      setForm(f => ({ ...f, image: b64 }));
+    }
+  };
+
+  const handleSilverChange = (id: string) => {
+    const st = silverTypes.find((s: any) => s.id === id);
+    setForm(f => ({ ...f, silverTypeId: id, calibre: st?.calibre || '' }));
+  };
+
+  const handleSave = () => {
+    onSave(form);
+    onClose();
+  };
+
+  const title = isSpecial
+    ? (editing ? 'Modifier l\'offre spéciale' : 'Nouvelle offre spéciale')
+    : (editing ? 'Modifier l\'offre' : 'Nouvelle offre');
+  const subtitle = isSpecial ? 'Offres promotionnelles' : 'Gestion des offres produit';
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          key="offer-modal-overlay"
+          className="modal-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        >
+          <motion.div
+            key={editing ? `edit-${(editing as any).id}` : `new-${isSpecial}`}
+            className="modal-box"
+            style={{
+              maxWidth: 720,
+              width: '95vw',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              borderLeft: '3px solid var(--gold)',
+              overflow: 'hidden',
+            }}
+            initial={{ opacity: 0, y: 32, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.97 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Sticky Header */}
+            <div className="modal-header" style={{ flexShrink: 0 }}>
+              <div>
+                <div className="silver-line" style={{ marginBottom: 6 }} />
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--silver-100)', letterSpacing: '-0.03em', margin: 0 }}>
+                  {title}
+                </h2>
+                <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--silver-300)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '4px 0 0' }}>{subtitle}</p>
+              </div>
+              <button onClick={onClose} className="btn-icon"><X size={18} /></button>
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="modal-body" style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {/* 2-col grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 24, alignItems: 'start' }}>
+                {/* LEFT: image + name */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {/* Image upload square */}
+                  <div>
+                    <label className="lux-label">Image</label>
+                    <div
+                      onClick={() => fileRef.current?.click()}
+                      style={{
+                        marginTop: 8,
+                        height: 220,
+                        borderRadius: 14,
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1.5px dashed var(--border)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden',
+                        cursor: 'pointer',
+                        transition: 'border-color 0.2s',
+                        position: 'relative',
+                      }}
+                    >
+                      {form.image ? (
+                        <img src={form.image} style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} alt="" />
+                      ) : (
+                        <>
+                          <ImageIcon size={32} color="var(--silver-400)" />
+                          <span style={{ fontSize: 12, color: 'var(--silver-400)', marginTop: 8, fontWeight: 600 }}>Cliquer pour choisir</span>
+                        </>
+                      )}
+                      {form.image && (
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0)', transition: 'background 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        </div>
+                      )}
+                    </div>
+                    <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImage} />
+                    {form.image && (
+                      <button
+                        onClick={() => setForm(f => ({ ...f, image: null }))}
+                        className="btn-outline"
+                        style={{ marginTop: 6, width: '100%', padding: '6px 0', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        Retirer l'image
+                      </button>
+                    )}
+                  </div>
+                  {/* Name */}
+                  <div>
+                    <label className="lux-label">Nom</label>
+                    <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} placeholder="Nom de l'offre" />
+                  </div>
+                </div>
+
+                {/* RIGHT: all other fields */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {/* Silver type */}
+                  <div>
+                    <label className="lux-label">Type d'argent</label>
+                    <select value={form.silverTypeId} onChange={e => handleSilverChange(e.target.value)} className="lux-select" style={{ marginTop: 6 }}>
+                      <option value="">-- Choisir --</option>
+                      {silverTypes.filter((s: any) => !s.isCassie).map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  {/* Calibre */}
+                  <div>
+                    <label className="lux-label">Calibre</label>
+                    <input value={form.calibre} onChange={e => setForm(f => ({ ...f, calibre: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
+                  </div>
+                  {/* Shape */}
+                  <div>
+                    <label className="lux-label">Forme</label>
+                    <select value={form.form} onChange={e => setForm(f => ({ ...f, form: e.target.value }))} className="lux-select" style={{ marginTop: 6 }}>
+                      <option value="">-- Choisir --</option>
+                      {shapes.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  {/* Pricing mode */}
+                  <div>
+                    <label className="lux-label">Mode de tarification</label>
+                    <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
+                      {(['perGram', 'alaPiece'] as const).map(m => (
+                        <button
+                          key={m}
+                          onClick={() => setForm(f => ({ ...f, pricingMode: m }))}
+                          style={{
+                            flex: 1, padding: '8px 0', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                            background: form.pricingMode === m ? 'rgba(212,175,55,0.15)' : 'transparent',
+                            border: `1px solid ${form.pricingMode === m ? 'var(--gold)' : 'var(--border)'}`,
+                            color: form.pricingMode === m ? 'var(--gold)' : 'var(--silver-300)',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          {m === 'perGram' ? 'Au Gramme' : 'À la Pièce'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Pricing fields — animated switch */}
+                  <AnimatePresence mode="wait">
+                    {form.pricingMode === 'perGram' ? (
+                      <motion.div
+                        key="per-gram"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.18 }}
+                        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}
+                      >
+                        <div>
+                          <label className="lux-label">Poids (g)</label>
+                          <input type="number" value={form.weight} onChange={e => setForm(f => ({ ...f, weight: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
+                        </div>
+                        <div>
+                          <label className="lux-label">Prix/g (DA)</label>
+                          <input type="number" value={form.pricePerGram} onChange={e => setForm(f => ({ ...f, pricePerGram: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
+                        </div>
+                        <div style={{ gridColumn: '1/-1' }}>
+                          <label className="lux-label">Total (DA) — auto</label>
+                          <input
+                            type="number"
+                            value={form.totalPrice || calcTotal(form)}
+                            onChange={e => setForm(f => ({ ...f, totalPrice: +e.target.value }))}
+                            className="lux-input"
+                            style={{ marginTop: 6 }}
+                            placeholder={`Auto: ${calcTotal(form).toFixed(0)}`}
+                          />
+                        </div>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="ala-piece"
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.18 }}
+                      >
+                        <label className="lux-label">Prix unitaire (DA)</label>
+                        <input type="number" value={form.unitPrice} onChange={e => setForm(f => ({ ...f, unitPrice: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Toggles */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <Toggle on={form.showQuantity} onToggle={() => setForm(f => ({ ...f, showQuantity: !f.showQuantity }))} label="Afficher les quantités" />
+                    <Toggle on={form.showWeight} onToggle={() => setForm(f => ({ ...f, showWeight: !f.showWeight }))} label="Afficher le poids sur la carte" />
+                    <Toggle on={form.isHidden} onToggle={() => setForm(f => ({ ...f, isHidden: !f.isHidden }))} label="Masquer l'offre" />
+                  </div>
+
+                  {/* Quantity — animated */}
+                  <AnimatePresence>
+                    {form.showQuantity && (
+                      <motion.div
+                        key="qty"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        style={{ overflow: 'hidden' }}
+                      >
+                        <label className="lux-label">Quantité disponible</label>
+                        <input type="number" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              {/* Special-offer-only fields */}
+              {isSpecial && (
+                <>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20 }}>
+                    <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 16px' }}>Paramètres promotionnels</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div>
+                        <label className="lux-label">Prix original (DA)</label>
+                        <input
+                          type="number"
+                          value={form.originalPrice}
+                          onChange={e => setForm(f => ({ ...f, originalPrice: +e.target.value }))}
+                          className="lux-input"
+                          style={{ marginTop: 6 }}
+                          placeholder={form.pricingMode === 'alaPiece' ? `Auto: ${form.unitPrice}` : `Auto: ${(form.weight * form.pricePerGram).toFixed(0)}`}
+                        />
+                      </div>
+                      <div>
+                        <label className="lux-label">Prix spécial (DA)</label>
+                        <input type="number" value={form.specialPrice} onChange={e => setForm(f => ({ ...f, specialPrice: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
+                      </div>
+                      <div>
+                        <label className="lux-label">Date début</label>
+                        <input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
+                      </div>
+                      <div>
+                        <label className="lux-label">Heure début</label>
+                        <input type="time" value={form.startHour} onChange={e => setForm(f => ({ ...f, startHour: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
+                      </div>
+                      <div>
+                        <label className="lux-label">Date fin</label>
+                        <input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
+                      </div>
+                      <div>
+                        <label className="lux-label">Heure fin</label>
+                        <input type="time" value={form.endHour} onChange={e => setForm(f => ({ ...f, endHour: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
+                      </div>
+                    </div>
+                    <div style={{ marginTop: 14 }}>
+                      <Toggle on={form.isActive} onToggle={() => setForm(f => ({ ...f, isActive: !f.isActive }))} label="Offre active" />
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Sticky Footer */}
+            <div className="modal-footer" style={{ flexShrink: 0 }}>
+              <button onClick={onClose} className="btn-outline" style={{ padding: '10px 24px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Annuler</button>
+              <button onClick={handleSave} className="btn-gold" style={{ padding: '10px 24px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Save size={15} /> Enregistrer
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 // ==================== OFFERS TAB ====================
 const OffersTab: React.FC = () => {
   const { webOffers, addWebOffer, updateWebOffer, deleteWebOffer, silverTypes, shapes } = useApp();
@@ -45,51 +415,12 @@ const OffersTab: React.FC = () => {
   const [editing, setEditing] = useState<WebOffer | null>(null);
   const [detail, setDetail] = useState<WebOffer | null>(null);
   const [toast, setToast] = useState('');
-  const fileRef = useRef<HTMLInputElement>(null);
 
-  const empty = {
-    name: '', image: null as string | null, silverTypeId: '', calibre: '', form: '',
-    pricingMode: 'perGram' as 'perGram' | 'alaPiece', weight: 0, pricePerGram: 0, totalPrice: 0,
-    unitPrice: 0, showQuantity: false, quantity: 0, showWeight: false, isHidden: false,
-  };
-  const [form, setForm] = useState(empty);
+  const closeShowModal = () => { setShowModal(false); };
+  const closeDetail = () => { setDetail(null); };
 
-  const closeShowModal = () => { setShowModal(false);
-  };
-  const closeDetail = () => { setDetail(null);
-  };
-
-  const openCreate = () => { setEditing(null); setForm(empty); setShowModal(true); };
-  const openEdit = (o: WebOffer) => {
-    setEditing(o);
-    setForm({ name: o.name, image: o.image, silverTypeId: o.silverTypeId, calibre: o.calibre, form: o.form, pricingMode: o.pricingMode, weight: o.weight ?? 0, pricePerGram: o.pricePerGram ?? 0, totalPrice: o.totalPrice, unitPrice: o.unitPrice ?? 0, showQuantity: o.showQuantity, quantity: o.quantity ?? 0, showWeight: o.showWeight ?? false, isHidden: o.isHidden });
-    setShowModal(true);
-  };
-
-  const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      setForm(f => ({ ...f, image: '' }));
-      toBase64(e.target.files![0]).then(b64 => setForm(f => ({ ...f, image: b64 })));
-    }
-  };
-
-  const handleSilverChange = (id: string) => {
-    const st = silverTypes.find(s => s.id === id);
-    setForm(f => ({ ...f, silverTypeId: id, calibre: st?.calibre || '' }));
-  };
-
-  const calcTotal = (f: typeof form) => {
-    if (f.pricingMode === 'perGram') return (f.weight || 0) * (f.pricePerGram || 0);
-    return f.unitPrice || 0;
-  };
-
-  const handleSave = () => {
-    const total = calcTotal(form);
-    const payload = { ...form, totalPrice: total };
-    if (editing) updateWebOffer(editing.id, payload);
-    else addWebOffer(payload);
-    closeShowModal();
-  };
+  const openCreate = () => { setEditing(null); setShowModal(true); };
+  const openEdit = (o: WebOffer) => { setEditing(o); setShowModal(true); };
 
   const handleCopyLink = (o: WebOffer) => {
     navigator.clipboard.writeText(window.location.origin + '/shop?offer=' + o.id);
@@ -146,150 +477,20 @@ const OffersTab: React.FC = () => {
       </div>
 
       {/* Create/Edit Modal */}
-      <AnimatePresence>
-        {showModal && (
-          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeShowModal}>
-            <motion.div
-              className="modal-box"
-              style={{ maxHeight: '90vh', overflowY: 'auto' }}
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="modal-header">
-                <div>
-                  <div className="silver-line" style={{ marginBottom: 6 }} />
-                  <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--silver-100)', letterSpacing: '-0.03em', margin: 0 }}>
-                    {editing ? "Modifier l'offre" : 'Nouvelle offre'}
-                  </h2>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--silver-300)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '4px 0 0' }}>Gestion des offres produit</p>
-                </div>
-                <button onClick={closeShowModal} className="btn-icon"><X size={18} /></button>
-              </div>
-
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {/* Image */}
-                <div>
-                  <label className="lux-label">Image</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 8 }}>
-                    <div style={{ width: 72, height: 72, borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                      {form.image ? <img src={form.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : <ImageIcon size={22} color="var(--silver-400)" />}
-                    </div>
-                    <button onClick={() => fileRef.current?.click()} className="btn-silver" style={{ padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                      Choisir une image
-                    </button>
-                    <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImage} />
-                  </div>
-                </div>
-                {/* Name */}
-                <div>
-                  <label className="lux-label">Nom</label>
-                  <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                </div>
-                {/* Silver type */}
-                <div>
-                  <label className="lux-label">Type d'argent</label>
-                  <select value={form.silverTypeId} onChange={e => handleSilverChange(e.target.value)} className="lux-select" style={{ marginTop: 6 }}>
-                    <option value="">-- Choisir --</option>
-                    {silverTypes.filter(s => !s.isCassie).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                </div>
-                {/* Calibre */}
-                <div>
-                  <label className="lux-label">Calibre</label>
-                  <input value={form.calibre} onChange={e => setForm(f => ({ ...f, calibre: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                </div>
-                {/* Form/Shape */}
-                <div>
-                  <label className="lux-label">Forme</label>
-                  <select value={form.form} onChange={e => setForm(f => ({ ...f, form: e.target.value }))} className="lux-select" style={{ marginTop: 6 }}>
-                    <option value="">-- Choisir --</option>
-                    {shapes.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                {/* Pricing mode */}
-                <div>
-                  <label className="lux-label">Mode de tarification</label>
-                  <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                    {(['perGram', 'alaPiece'] as const).map(m => (
-                      <button
-                        key={m}
-                        onClick={() => setForm(f => ({ ...f, pricingMode: m }))}
-                        style={{
-                          flex: 1, padding: '8px 0', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                          background: form.pricingMode === m ? 'rgba(212,175,55,0.15)' : 'transparent',
-                          border: `1px solid ${form.pricingMode === m ? 'var(--gold)' : 'var(--border)'}`,
-                          color: form.pricingMode === m ? 'var(--gold)' : 'var(--silver-300)',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        {m === 'perGram' ? 'Au Gramme' : 'À la Pièce'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {form.pricingMode === 'perGram' ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <div>
-                      <label className="lux-label">Poids (g)</label>
-                      <input type="number" value={form.weight} onChange={e => setForm(f => ({ ...f, weight: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                    </div>
-                    <div>
-                      <label className="lux-label">Prix/g (DA)</label>
-                      <input type="number" value={form.pricePerGram} onChange={e => setForm(f => ({ ...f, pricePerGram: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                    </div>
-                    <div style={{ gridColumn: '1/-1' }}>
-                      <label className="lux-label">Total (DA) — auto</label>
-                      <input type="number" value={form.totalPrice || calcTotal(form)} onChange={e => setForm(f => ({ ...f, totalPrice: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="lux-label">Prix unitaire (DA)</label>
-                    <input type="number" value={form.unitPrice} onChange={e => setForm(f => ({ ...f, unitPrice: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                  </div>
-                )}
-                {/* Toggles row */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                    <div
-                      onClick={() => setForm(f => ({ ...f, showQuantity: !f.showQuantity }))}
-                      style={{ width: 40, height: 22, borderRadius: 11, background: form.showQuantity ? 'var(--gold)' : 'var(--border)', transition: 'all 0.2s', position: 'relative', cursor: 'pointer', flexShrink: 0 }}
-                    >
-                      <div style={{ width: 18, height: 18, background: 'white', borderRadius: '50%', position: 'absolute', top: 2, left: form.showQuantity ? 20 : 2, transition: 'all 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} />
-                    </div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--silver-200)' }}>Afficher les quantités</span>
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                    <div
-                      onClick={() => setForm(f => ({ ...f, showWeight: !f.showWeight }))}
-                      style={{ width: 40, height: 22, borderRadius: 11, background: form.showWeight ? 'var(--gold)' : 'var(--border)', transition: 'all 0.2s', position: 'relative', cursor: 'pointer', flexShrink: 0 }}
-                    >
-                      <div style={{ width: 18, height: 18, background: 'white', borderRadius: '50%', position: 'absolute', top: 2, left: form.showWeight ? 20 : 2, transition: 'all 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} />
-                    </div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--silver-200)' }}>Afficher le poids sur la carte</span>
-                  </label>
-                </div>
-                {form.showQuantity && (
-                  <div>
-                    <label className="lux-label">Quantité disponible</label>
-                    <input type="number" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                  </div>
-                )}
-              </div>
-
-              <div className="modal-footer">
-                <button onClick={closeShowModal} className="btn-outline" style={{ padding: '10px 24px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Annuler</button>
-                <button onClick={handleSave} className="btn-gold" style={{ padding: '10px 24px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Save size={15} /> Enregistrer
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <OfferFormModal
+        open={showModal}
+        onClose={closeShowModal}
+        editing={editing}
+        isSpecial={false}
+        onSave={(payload) => {
+          const total = payload.pricingMode === 'perGram' ? payload.weight * payload.pricePerGram : payload.unitPrice;
+          const finalPayload = { ...payload, totalPrice: total };
+          if (editing) updateWebOffer(editing.id, finalPayload);
+          else addWebOffer(finalPayload);
+        }}
+        silverTypes={silverTypes}
+        shapes={shapes}
+      />
 
       {/* Detail Modal */}
       <AnimatePresence>
@@ -344,55 +545,12 @@ const SpecialOffersTab: React.FC = () => {
   const [editing, setEditing] = useState<WebSpecialOffer | null>(null);
   const [detail, setDetail] = useState<WebSpecialOffer | null>(null);
   const [toast, setToast] = useState('');
-  const fileRef = useRef<HTMLInputElement>(null);
 
-  const emptyForm = {
-    name: '', image: null as string | null, silverTypeId: '', calibre: '', form: '',
-    pricingMode: 'perGram' as 'perGram' | 'alaPiece', weight: 0, pricePerGram: 0, originalPrice: 0,
-    specialPrice: 0, unitPrice: 0, showQuantity: false, quantity: 0, showWeight: false,
-    isHidden: false, isActive: false, startDate: '', startHour: '', endDate: '', endHour: '',
-  };
-  const [form, setForm] = useState(emptyForm);
+  const closeShowModal = () => { setShowModal(false); };
+  const closeDetail = () => { setDetail(null); };
 
-  const closeShowModal = () => { setShowModal(false);
-  };
-  const closeDetail = () => { setDetail(null);
-  };
-
-  const openCreate = () => { setEditing(null); setForm(emptyForm); setShowModal(true); };
-  const openEdit = (o: WebSpecialOffer) => {
-    setEditing(o);
-    const origPrice = o.pricingMode === 'alaPiece' ? (o.unitPrice ?? 0) : o.originalPrice;
-    setForm({ name: o.name, image: o.image, silverTypeId: o.silverTypeId, calibre: o.calibre, form: o.form, pricingMode: o.pricingMode, weight: o.weight ?? 0, pricePerGram: o.pricePerGram ?? 0, originalPrice: origPrice, specialPrice: o.specialPrice, unitPrice: o.unitPrice ?? 0, showQuantity: o.showQuantity, quantity: o.quantity ?? 0, showWeight: o.showWeight ?? false, isHidden: o.isHidden, isActive: o.isActive, startDate: o.startDate, startHour: o.startHour, endDate: o.endDate, endHour: o.endHour });
-    setShowModal(true);
-  };
-
-  const handleSilverChange = (id: string) => {
-    const st = silverTypes.find(s => s.id === id);
-    setForm(f => ({ ...f, silverTypeId: id, calibre: st?.calibre || '' }));
-  };
-
-  const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      const b64 = await toBase64(e.target.files[0]);
-      setForm(f => ({ ...f, image: b64 }));
-    }
-  };
-
-  const handleSave = () => {
-    let payload = { ...form };
-    // Auto-calculate originalPrice if not explicitly set
-    if (form.originalPrice === 0) {
-      if (form.pricingMode === 'alaPiece') {
-        payload.originalPrice = form.unitPrice;
-      } else {
-        payload.originalPrice = form.weight * form.pricePerGram;
-      }
-    }
-    if (editing) updateWebSpecialOffer(editing.id, payload);
-    else addWebSpecialOffer(payload);
-    closeShowModal();
-  };
+  const openCreate = () => { setEditing(null); setShowModal(true); };
+  const openEdit = (o: WebSpecialOffer) => { setEditing(o); setShowModal(true); };
 
   const handleCopyLink = (o: WebSpecialOffer) => {
     navigator.clipboard.writeText(window.location.origin + '/shop?special=' + o.id);
@@ -472,166 +630,23 @@ const SpecialOffersTab: React.FC = () => {
         )}
       </div>
 
-      <AnimatePresence>
-        {showModal && (
-          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeShowModal}>
-            <motion.div
-              className="modal-box"
-              style={{ maxHeight: '90vh', overflowY: 'auto' }}
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="modal-header">
-                <div>
-                  <div className="silver-line" style={{ marginBottom: 6 }} />
-                  <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--silver-100)', letterSpacing: '-0.03em', margin: 0 }}>
-                    {editing ? 'Modifier' : 'Nouvelle offre spéciale'}
-                  </h2>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--silver-300)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '4px 0 0' }}>Offres promotionnelles</p>
-                </div>
-                <button onClick={closeShowModal} className="btn-icon"><X size={18} /></button>
-              </div>
+      {/* Create/Edit Modal */}
+      <OfferFormModal
+        open={showModal}
+        onClose={closeShowModal}
+        editing={editing}
+        isSpecial={true}
+        onSave={(payload) => {
+          const origPrice = payload.originalPrice || (payload.pricingMode === 'alaPiece' ? payload.unitPrice : payload.weight * payload.pricePerGram);
+          const finalPayload = { ...payload, originalPrice: origPrice };
+          if (editing) updateWebSpecialOffer(editing.id, finalPayload);
+          else addWebSpecialOffer(finalPayload);
+        }}
+        silverTypes={silverTypes}
+        shapes={shapes}
+      />
 
-              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <div>
-                  <label className="lux-label">Image</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 8 }}>
-                    <div style={{ width: 72, height: 72, borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                      {form.image ? <img src={form.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" /> : <ImageIcon size={22} color="var(--silver-400)" />}
-                    </div>
-                    <button onClick={() => fileRef.current?.click()} className="btn-silver" style={{ padding: '8px 16px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Choisir</button>
-                    <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImage} />
-                  </div>
-                </div>
-                <div>
-                  <label className="lux-label">Nom</label>
-                  <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                </div>
-                <div>
-                  <label className="lux-label">Type d'argent</label>
-                  <select value={form.silverTypeId} onChange={e => handleSilverChange(e.target.value)} className="lux-select" style={{ marginTop: 6 }}>
-                    <option value="">-- Choisir --</option>
-                    {silverTypes.filter(s => !s.isCassie).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="lux-label">Calibre</label>
-                  <input value={form.calibre} onChange={e => setForm(f => ({ ...f, calibre: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                </div>
-                <div>
-                  <label className="lux-label">Forme</label>
-                  <select value={form.form} onChange={e => setForm(f => ({ ...f, form: e.target.value }))} className="lux-select" style={{ marginTop: 6 }}>
-                    <option value="">-- Choisir --</option>
-                    {shapes.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="lux-label">Mode tarification</label>
-                  <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                    {(['perGram', 'alaPiece'] as const).map(m => (
-                      <button
-                        key={m}
-                        onClick={() => setForm(f => ({ ...f, pricingMode: m }))}
-                        style={{
-                          flex: 1, padding: '8px 0', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                          background: form.pricingMode === m ? 'rgba(212,175,55,0.15)' : 'transparent',
-                          border: `1px solid ${form.pricingMode === m ? 'var(--gold)' : 'var(--border)'}`,
-                          color: form.pricingMode === m ? 'var(--gold)' : 'var(--silver-300)',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        {m === 'perGram' ? 'Au Gramme' : 'À la Pièce'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {form.pricingMode === 'perGram' ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <div>
-                      <label className="lux-label">Poids (g)</label>
-                      <input type="number" value={form.weight} onChange={e => setForm(f => ({ ...f, weight: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                    </div>
-                    <div>
-                      <label className="lux-label">Prix/g</label>
-                      <input type="number" value={form.pricePerGram} onChange={e => setForm(f => ({ ...f, pricePerGram: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                    </div>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="lux-label">Prix unitaire (DA)</label>
-                    <input type="number" value={form.unitPrice} onChange={e => setForm(f => ({ ...f, unitPrice: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                  </div>
-                )}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div>
-                    <label className="lux-label">Prix original (DA)</label>
-                    <input type="number" value={form.originalPrice} onChange={e => setForm(f => ({ ...f, originalPrice: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} placeholder={form.pricingMode === 'alaPiece' ? `Auto: ${form.unitPrice}` : `Auto: ${(form.weight * form.pricePerGram).toFixed(0)}`} />
-                  </div>
-                  <div>
-                    <label className="lux-label">Prix spécial (DA)</label>
-                    <input type="number" value={form.specialPrice} onChange={e => setForm(f => ({ ...f, specialPrice: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div>
-                    <label className="lux-label">Date début</label>
-                    <input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                  </div>
-                  <div>
-                    <label className="lux-label">Heure début</label>
-                    <input type="time" value={form.startHour} onChange={e => setForm(f => ({ ...f, startHour: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                  </div>
-                  <div>
-                    <label className="lux-label">Date fin</label>
-                    <input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                  </div>
-                  <div>
-                    <label className="lux-label">Heure fin</label>
-                    <input type="time" value={form.endHour} onChange={e => setForm(f => ({ ...f, endHour: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                    <div
-                      onClick={() => setForm(f => ({ ...f, showQuantity: !f.showQuantity }))}
-                      style={{ width: 40, height: 22, borderRadius: 11, background: form.showQuantity ? 'var(--gold)' : 'var(--border)', transition: 'all 0.2s', position: 'relative', cursor: 'pointer', flexShrink: 0 }}
-                    >
-                      <div style={{ width: 18, height: 18, background: 'white', borderRadius: '50%', position: 'absolute', top: 2, left: form.showQuantity ? 20 : 2, transition: 'all 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} />
-                    </div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--silver-200)' }}>Afficher les quantités</span>
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                    <div
-                      onClick={() => setForm(f => ({ ...f, showWeight: !f.showWeight }))}
-                      style={{ width: 40, height: 22, borderRadius: 11, background: form.showWeight ? 'var(--gold)' : 'var(--border)', transition: 'all 0.2s', position: 'relative', cursor: 'pointer', flexShrink: 0 }}
-                    >
-                      <div style={{ width: 18, height: 18, background: 'white', borderRadius: '50%', position: 'absolute', top: 2, left: form.showWeight ? 20 : 2, transition: 'all 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} />
-                    </div>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--silver-200)' }}>Afficher le poids sur la carte</span>
-                  </label>
-                </div>
-                {form.showQuantity && (
-                  <div>
-                    <label className="lux-label">Quantité</label>
-                    <input type="number" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
-                  </div>
-                )}
-              </div>
-
-              <div className="modal-footer">
-                <button onClick={closeShowModal} className="btn-outline" style={{ padding: '10px 24px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Annuler</button>
-                <button onClick={handleSave} className="btn-gold" style={{ padding: '10px 24px', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Save size={15} /> Enregistrer
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+      {/* Detail Modal */}
       <AnimatePresence>
         {detail && (
           <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeDetail}>
@@ -702,11 +717,9 @@ const DeliveryTab: React.FC = () => {
   const openCreate = () => { setEditingCompany(null); setCompanyForm({ name: '', phone: '' }); setShowCreate(true); };
   const openEdit = (c: WebDeliveryCompany) => { setEditingCompany(c); setCompanyForm({ name: c.name, phone: c.phone }); setShowCreate(true); };
 
-  const closeShowCreate = () => { setShowCreate(false); setEditingCompany(null);
-  };
+  const closeShowCreate = () => { setShowCreate(false); setEditingCompany(null); };
 
-  const closeManagingCompany = () => { setManagingCompany(null);
-  };
+  const closeManagingCompany = () => { setManagingCompany(null); };
 
   const saveCompany = () => {
     if (editingCompany) updateWebDeliveryCompany(editingCompany.id, companyForm);

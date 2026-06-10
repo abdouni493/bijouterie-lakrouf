@@ -5,9 +5,10 @@ import { useApp } from '../AppContext';
 import { translations } from '../translations';
 
 const Clients: React.FC = () => {
-  const { clients, addClient, updateClient, deleteClient, addClientPayment, deleteClientPayment, addClientRecuperation, deleteClientRecuperation, language } = useApp();
+  const { clients, addClient, updateClient, deleteClient, addClientPayment, deleteClientPayment, addClientRecuperation, deleteClientRecuperation, language, theme } = useApp();
   const t = translations[language];
   const shouldReduce = useReducedMotion();
+  const isDark = theme === 'dark';
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -97,7 +98,7 @@ const Clients: React.FC = () => {
         <motion.div
           initial={shouldReduce ? false : { opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          style={{ textAlign: 'center', padding: '80px 0', color: 'rgba(192,200,212,0.3)' }}
+          style={{ textAlign: 'center', padding: '80px 0', color: isDark ? 'rgba(192,200,212,0.3)' : 'rgba(60,60,80,0.3)' }}
         >
           <User size={48} style={{ margin: '0 auto 16px', opacity: 0.3 }} />
           <p style={{ fontSize: 16 }}>{language === 'ar' ? 'لا يوجد عملاء بعد' : 'Aucun client pour le moment'}</p>
@@ -115,10 +116,10 @@ const Clients: React.FC = () => {
               initial={shouldReduce ? false : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.06 }}
-              whileHover={shouldReduce ? {} : { y: -3, borderColor: 'rgba(192,200,212,0.25)' }}
+              whileHover={shouldReduce ? {} : { y: -3, borderColor: isDark ? 'rgba(192,200,212,0.25)' : 'rgba(180,160,100,0.35)' }}
               style={{
-                background: 'linear-gradient(135deg, rgba(28,36,46,0.95), rgba(22,28,36,0.98))',
-                border: '1px solid rgba(192,200,212,0.10)',
+                background: isDark ? 'linear-gradient(135deg, rgba(28,36,46,0.95), rgba(22,28,36,0.98))' : 'linear-gradient(135deg, rgba(255,253,248,0.98), rgba(250,248,242,0.98))',
+                border: isDark ? '1px solid rgba(192,200,212,0.10)' : '1px solid rgba(180,160,100,0.18)',
                 borderRadius: 20,
                 padding: 24,
                 position: 'relative',
@@ -129,14 +130,14 @@ const Clients: React.FC = () => {
               {/* Top: name + actions */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <h3 style={{ fontSize: 17, fontWeight: 800, color: '#F0F4F8', letterSpacing: '-0.02em', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</h3>
+                  <h3 style={{ fontSize: 17, fontWeight: 800, color: isDark ? '#F0F4F8' : '#1a1a2e', letterSpacing: '-0.02em', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</h3>
                   {c.phone && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <Phone size={11} style={{ color: 'rgba(192,200,212,0.35)' }} />
-                      <p style={{ fontSize: 11, fontWeight: 700, color: 'rgba(192,200,212,0.4)', letterSpacing: '0.04em' }}>{c.phone}</p>
+                      <Phone size={11} style={{ color: isDark ? 'rgba(192,200,212,0.35)' : 'rgba(80,70,50,0.45)' }} />
+                      <p style={{ fontSize: 11, fontWeight: 700, color: isDark ? 'rgba(192,200,212,0.4)' : 'rgba(80,70,50,0.55)', letterSpacing: '0.04em' }}>{c.phone}</p>
                     </div>
                   )}
-                  {c.note && <p style={{ fontSize: 12, color: 'rgba(192,200,212,0.35)', marginTop: 6, lineHeight: 1.4 }}>{c.note}</p>}
+                  {c.note && <p style={{ fontSize: 12, color: isDark ? 'rgba(192,200,212,0.35)' : 'rgba(80,70,50,0.45)', marginTop: 6, lineHeight: 1.4 }}>{c.note}</p>}
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginLeft: 12 }}>
                   <motion.button
@@ -223,10 +224,10 @@ const Clients: React.FC = () => {
             >
               <div className="modal-header">
                 <div>
-                  <h2 style={{ fontSize: 18, fontWeight: 800, color: '#F0F4F8', letterSpacing: '-0.02em', margin: 0 }}>
+                  <h2 style={{ fontSize: 18, fontWeight: 800, color: isDark ? '#F0F4F8' : '#1a1a2e', letterSpacing: '-0.02em', margin: 0 }}>
                     {editingId ? (language === 'ar' ? 'تعديل عميل' : 'Modifier Client') : (language === 'ar' ? 'عميل جديد' : 'Nouveau Client')}
                   </h2>
-                  <p style={{ fontSize: 11, color: 'rgba(192,200,212,0.4)', fontWeight: 600, marginTop: 2 }}>
+                  <p style={{ fontSize: 11, color: isDark ? 'rgba(192,200,212,0.4)' : 'rgba(80,70,50,0.5)', fontWeight: 600, marginTop: 2 }}>
                     {language === 'ar' ? 'أدخل معلومات العميل' : 'Ajouter ou modifier les informations'}
                   </p>
                 </div>
@@ -279,8 +280,8 @@ const Clients: React.FC = () => {
                     <DollarSign size={18} style={{ color: '#8FA3B8' }} />
                   </div>
                   <div>
-                    <h2 style={{ fontSize: 18, fontWeight: 800, color: '#F0F4F8', margin: 0 }}>{language === 'ar' ? 'إضافة دين' : 'Ajouter Crédit'}</h2>
-                    <p style={{ fontSize: 11, color: 'rgba(192,200,212,0.4)', margin: 0 }}>{language === 'ar' ? 'تسجيل دين جديد' : 'Enregistrer un crédit client'}</p>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: isDark ? '#F0F4F8' : '#1a1a2e', margin: 0 }}>{language === 'ar' ? 'إضافة دين' : 'Ajouter Crédit'}</h2>
+                    <p style={{ fontSize: 11, color: isDark ? 'rgba(192,200,212,0.4)' : 'rgba(80,70,50,0.5)', margin: 0 }}>{language === 'ar' ? 'تسجيل دين جديد' : 'Enregistrer un crédit client'}</p>
                   </div>
                 </div>
                 <button onClick={closeShowPaymentModal} className="btn-icon"><X size={16} /></button>
@@ -325,8 +326,8 @@ const Clients: React.FC = () => {
                       <TrendingDown size={18} style={{ color: '#22D3A5' }} />
                     </div>
                     <div>
-                      <h2 style={{ fontSize: 18, fontWeight: 800, color: '#F0F4F8', margin: 0 }}>{language === 'ar' ? 'استرداد مبلغ' : 'Récupérer Argent'}</h2>
-                      <p style={{ fontSize: 11, color: 'rgba(192,200,212,0.4)', margin: 0 }}>{language === 'ar' ? 'تسجيل استرداد' : 'Enregistrer une récupération'}</p>
+                      <h2 style={{ fontSize: 18, fontWeight: 800, color: isDark ? '#F0F4F8' : '#1a1a2e', margin: 0 }}>{language === 'ar' ? 'استرداد مبلغ' : 'Récupérer Argent'}</h2>
+                      <p style={{ fontSize: 11, color: isDark ? 'rgba(192,200,212,0.4)' : 'rgba(80,70,50,0.5)', margin: 0 }}>{language === 'ar' ? 'تسجيل استرداد' : 'Enregistrer une récupération'}</p>
                     </div>
                   </div>
                   <button onClick={closeShowRecuperationModal} className="btn-icon"><X size={16} /></button>
@@ -379,8 +380,8 @@ const Clients: React.FC = () => {
               >
                 <div className="modal-header">
                   <div>
-                    <h2 style={{ fontSize: 18, fontWeight: 800, color: '#F0F4F8', margin: 0 }}>{c.name}</h2>
-                    <p style={{ fontSize: 11, color: 'rgba(192,200,212,0.4)', margin: 0 }}>{c.phone || (language === 'ar' ? 'بدون هاتف' : 'Pas de téléphone')}</p>
+                    <h2 style={{ fontSize: 18, fontWeight: 800, color: isDark ? '#F0F4F8' : '#1a1a2e', margin: 0 }}>{c.name}</h2>
+                    <p style={{ fontSize: 11, color: isDark ? 'rgba(192,200,212,0.4)' : 'rgba(80,70,50,0.5)', margin: 0 }}>{c.phone || (language === 'ar' ? 'بدون هاتف' : 'Pas de téléphone')}</p>
                   </div>
                   <button onClick={closeHistoryClientId} className="btn-icon"><X size={16} /></button>
                 </div>
@@ -398,13 +399,13 @@ const Clients: React.FC = () => {
                     ))}
                   </div>
 
-                  <div style={{ borderTop: '1px solid rgba(192,200,212,0.08)', paddingTop: 16 }}>
-                    <p style={{ fontSize: 11, fontWeight: 800, color: 'rgba(192,200,212,0.4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>
+                  <div style={{ borderTop: isDark ? '1px solid rgba(192,200,212,0.08)' : '1px solid rgba(180,160,100,0.15)', paddingTop: 16 }}>
+                    <p style={{ fontSize: 11, fontWeight: 800, color: isDark ? 'rgba(192,200,212,0.4)' : 'rgba(80,70,50,0.5)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 12 }}>
                       {language === 'ar' ? 'سجل المعاملات' : 'Historique des Transactions'}
                     </p>
                     <div style={{ maxHeight: 380, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {allTransactions.length === 0 ? (
-                        <p style={{ textAlign: 'center', color: 'rgba(192,200,212,0.3)', padding: '40px 0', fontSize: 14 }}>
+                        <p style={{ textAlign: 'center', color: isDark ? 'rgba(192,200,212,0.3)' : 'rgba(80,70,50,0.3)', padding: '40px 0', fontSize: 14 }}>
                           {language === 'ar' ? 'لا توجد معاملات' : 'Aucune transaction'}
                         </p>
                       ) : allTransactions.map(tx => (
@@ -421,10 +422,10 @@ const Clients: React.FC = () => {
                             {tx.type === 'payment' ? <DollarSign size={15} style={{ color: '#8FA3B8' }} /> : <TrendingDown size={15} style={{ color: '#22D3A5' }} />}
                           </div>
                           <div style={{ flex: 1 }}>
-                            <p style={{ fontWeight: 700, color: '#F0F4F8', fontSize: 13, margin: 0 }}>
+                            <p style={{ fontWeight: 700, color: isDark ? '#F0F4F8' : '#1a1a2e', fontSize: 13, margin: 0 }}>
                               {tx.type === 'payment' ? (language === 'ar' ? 'دين مضاف' : 'Crédit Ajouté') : (language === 'ar' ? 'مبلغ مسترد' : 'Argent Récupéré')}
                             </p>
-                            <p style={{ fontSize: 11, color: 'rgba(192,200,212,0.4)', margin: 0 }}>
+                            <p style={{ fontSize: 11, color: isDark ? 'rgba(192,200,212,0.4)' : 'rgba(80,70,50,0.5)', margin: 0 }}>
                               {new Date(tx.date).toLocaleDateString('fr-FR')}
                             </p>
                           </div>
@@ -435,7 +436,7 @@ const Clients: React.FC = () => {
                             <motion.button
                               onClick={() => { if (confirm('Supprimer ?')) { tx.type === 'payment' ? deleteClientPayment(c.id, tx.id) : deleteClientRecuperation(c.id, tx.id); } }}
                               whileHover={shouldReduce ? {} : { color: '#FF5F72' }}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(192,200,212,0.25)', padding: 4 }}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: isDark ? 'rgba(192,200,212,0.25)' : 'rgba(80,70,50,0.25)', padding: 4 }}
                             >
                               <Trash2 size={14} />
                             </motion.button>
