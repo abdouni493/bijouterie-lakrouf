@@ -5,6 +5,33 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Fallback: ensure any direct `fetch` calls to the Supabase REST/storage endpoints
+// include the anon key and Authorization header. This helps when some code
+// issues direct fetch requests (or a build strips headers) and receives 401.
+if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
+  try {
+    const originalFetch = window.fetch.bind(window) as typeof fetch;
+    (window as any).fetch = (input: RequestInfo, init?: RequestInit) => {
+      try {
+        const url = typeof input === 'string' ? input : (input as Request).url;
+        if (typeof url === 'string' && url.includes(new URL(SUPABASE_URL).hostname)) {
+          init = init || {};
+          init.headers = init.headers || {};
+          const headers = new Headers(init.headers as HeadersInit);
+          if (!headers.get('apikey')) headers.set('apikey', SUPABASE_ANON_KEY);
+          if (!headers.get('Authorization')) headers.set('Authorization', `Bearer ${SUPABASE_ANON_KEY}`);
+          init.headers = headers;
+        }
+      } catch (e) {
+        // ignore and continue with original fetch
+      }
+      return originalFetch(input, init);
+    };
+  } catch (e) {
+    // non-fatal
+  }
+}
+
 export const BUCKET_LOGOS = 'logos';
 export const BUCKET_OFFERS = 'offers';
 export const BUCKET_SPECIAL_OFFERS = 'special-offers';
