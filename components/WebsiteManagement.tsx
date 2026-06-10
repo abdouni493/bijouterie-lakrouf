@@ -148,7 +148,7 @@ const OfferFormModal: React.FC<OfferFormModalProps> = ({ open, onClose, editing,
             key={editing ? `edit-${(editing as any).id}` : `new-${isSpecial}`}
             className="modal-box"
             style={{
-              maxWidth: 680,
+              maxWidth: 760,
               width: '95vw',
               maxHeight: '90vh',
               display: 'flex',
@@ -176,7 +176,7 @@ const OfferFormModal: React.FC<OfferFormModalProps> = ({ open, onClose, editing,
             {/* Scrollable Body */}
             <div className="modal-body" style={{ overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
               {/* 2-col grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 24, alignItems: 'start' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 24, alignItems: 'start' }}>
                 {/* LEFT: image + name */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   {/* Image upload square */}
