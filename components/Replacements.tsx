@@ -278,7 +278,7 @@ const Replacements: React.FC = () => {
                     <button onClick={() => setDeleteTargetId(r.id)} className="btn-icon danger" title={t.delete}><Trash2 size={14} /></button>
                   </div>
                 </div>
-                <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--silver-100)', margin: 0 }}>{r.clientName || 'Anonyme'}</h3>
+                <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--silver-100)', margin: 0 }}>{r.clientName || ''}</h3>
               </div>
 
               {/* Card Body */}
@@ -291,7 +291,9 @@ const Replacements: React.FC = () => {
                       {silverTypes.find(s => s.id === r.returnedItem.silverTypeId)?.name || 'N/A'}
                     </p>
                     <p style={{ fontSize: 12, color: 'var(--silver-300)', margin: '2px 0 0' }}>
-                      {getShapeLabel(r.returnedItem.shape)} &bull; {r.returnedItem.weight}g @ {r.returnedItem.pricePerGram} DZD/g
+                      {getShapeLabel(r.returnedItem.shape)}
+                      {r.returnedItem.weight && r.returnedItem.weight > 0 ? <> &bull; {r.returnedItem.weight}g</> : null}
+                      {r.returnedItem.pricePerGram && r.returnedItem.pricePerGram > 0 ? <> @ {r.returnedItem.pricePerGram} DZD/g</> : null}
                     </p>
                   </div>
                 </div>
@@ -305,7 +307,9 @@ const Replacements: React.FC = () => {
                         {silverTypes.find(s => s.id === r.newItem?.silverTypeId)?.name || 'N/A'}
                       </p>
                       <p style={{ fontSize: 12, color: 'var(--silver-300)', margin: '2px 0 0' }}>
-                        {getShapeLabel(r.newItem?.shape)} &bull; {r.newItem?.weight}g @ {r.newItem?.pricePerGram} DZD/g
+                        {getShapeLabel(r.newItem?.shape)}
+                        {r.newItem?.weight && r.newItem?.weight > 0 ? <> &bull; {r.newItem?.weight}g</> : null}
+                        {r.newItem?.pricePerGram && r.newItem?.pricePerGram > 0 ? <> @ {r.newItem?.pricePerGram} DZD/g</> : null}
                       </p>
                     </div>
                   </div>
@@ -731,7 +735,7 @@ const Replacements: React.FC = () => {
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div className="lux-card" style={{ padding: 14 }}>
                           <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--silver-400)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{t.clientName}</p>
-                          <p style={{ fontWeight: 800, color: 'var(--silver-100)', fontSize: 15, margin: '4px 0 0' }}>{inv.clientName || 'Anonyme'}</p>
+                          <p style={{ fontWeight: 800, color: 'var(--silver-100)', fontSize: 15, margin: '4px 0 0' }}>{inv.clientName || ''}</p>
                         </div>
                         <div className="lux-card" style={{ padding: 14 }}>
                           <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--silver-400)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{t.clientPhone}</p>
@@ -745,9 +749,11 @@ const Replacements: React.FC = () => {
                           <p style={{ fontWeight: 700, color: 'var(--silver-100)', margin: 0 }}>
                             {silverTypes.find(s => s.id === inv.returnedItem.silverTypeId)?.name} - {getShapeLabel(inv.returnedItem.shape)}
                           </p>
-                          <p style={{ fontSize: 13, color: 'var(--silver-300)', margin: '4px 0 0' }}>
-                            {inv.returnedItem.weight}g @ {inv.returnedItem.pricePerGram} DZD/g = {(inv.returnedItem.weight * inv.returnedItem.pricePerGram).toLocaleString()} DZD
-                          </p>
+                          {(inv.returnedItem.weight * inv.returnedItem.pricePerGram) > 0 && (
+                            <p style={{ fontSize: 13, color: 'var(--silver-300)', margin: '4px 0 0' }}>
+                              {inv.returnedItem.weight}g @ {inv.returnedItem.pricePerGram} DZD/g = {(inv.returnedItem.weight * inv.returnedItem.pricePerGram).toLocaleString()} DZD
+                            </p>
+                          )}
                         </div>
                       </div>
 
@@ -758,9 +764,11 @@ const Replacements: React.FC = () => {
                             <p style={{ fontWeight: 700, color: 'var(--silver-100)', margin: 0 }}>
                               {silverTypes.find(s => s.id === inv.newItem?.silverTypeId)?.name} - {getShapeLabel(inv.newItem?.shape)}
                             </p>
-                            <p style={{ fontSize: 13, color: 'var(--silver-300)', margin: '4px 0 0' }}>
-                              {inv.newItem?.weight}g @ {inv.newItem?.pricePerGram} DZD/g = {(inv.newItem?.weight * inv.newItem?.pricePerGram).toLocaleString()} DZD
-                            </p>
+                              {(inv.newItem?.weight || 0) * (inv.newItem?.pricePerGram || 0) > 0 && (
+                                <p style={{ fontSize: 13, color: 'var(--silver-300)', margin: '4px 0 0' }}>
+                                  {inv.newItem?.weight}g @ {inv.newItem?.pricePerGram} DZD/g = {(inv.newItem?.weight * inv.newItem?.pricePerGram).toLocaleString()} DZD
+                                </p>
+                              )}
                           </div>
                         </div>
                       )}
