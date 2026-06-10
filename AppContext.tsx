@@ -378,6 +378,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const repData = ok<any[]>(repRes);
         if (repData?.length) setReplacements(repData.map(r => ({
           id: String(r.id), date: r.date, type: r.type,
+          clientName: r.client_name || '', clientPhone: r.client_phone || '',
           returnedItem: r.returned_item || {}, newItem: r.new_item,
           buyBackPricePerGram: r.buy_back_price_per_gram,
           amountDifference: Number(r.amount_difference || 0),
@@ -1227,7 +1228,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const invoice: ReplacementInvoice = { id, date, ...r, amountDifference, amountToPay, amountToRefund } as ReplacementInvoice;
 
     const { error } = await supabase.from('replacements').insert({
-      id, date, type: r.type, returned_item: r.returnedItem, new_item: r.newItem,
+      id, date, type: r.type,
+      client_name: r.clientName || '', client_phone: r.clientPhone || '',
+      returned_item: r.returnedItem, new_item: r.newItem,
       buy_back_price_per_gram: r.buyBackPricePerGram,
       amount_difference: amountDifference, amount_to_pay: amountToPay, amount_to_refund: amountToRefund,
     });
@@ -1245,7 +1248,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const merged = { ...old, ...r } as ReplacementInvoice;
 
     const { error } = await supabase.from('replacements').update({
-      type: merged.type, returned_item: merged.returnedItem, new_item: merged.newItem,
+      type: merged.type,
+      client_name: merged.clientName || '', client_phone: merged.clientPhone || '',
+      returned_item: merged.returnedItem, new_item: merged.newItem,
       buy_back_price_per_gram: merged.buyBackPricePerGram,
       amount_difference: merged.amountDifference, amount_to_pay: merged.amountToPay, amount_to_refund: merged.amountToRefund,
     }).eq('id', id);
