@@ -259,9 +259,9 @@ const PromoCard: React.FC<{
           {offer.name}
         </h3>
 
-        {(offer.calibre || offer.form) && (
+        {(offer.calibre || offer.form || (offer.showWeight && offer.weight)) && (
           <div style={{ fontFamily: MESSIKA_FONTS.body, fontSize: '11px', color: tc.textMuted, marginBottom: '14px', letterSpacing: '0.08em' }}>
-            {[offer.calibre, offer.form].filter(Boolean).join(' — ')}
+            {[offer.calibre, offer.form, offer.showWeight && offer.weight ? `${offer.weight}g` : null].filter(Boolean).join(' — ')}
           </div>
         )}
 

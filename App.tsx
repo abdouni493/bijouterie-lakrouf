@@ -1,10 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  LayoutDashboard, Calculator, Package, UserPlus, Menu as MenuIcon,
-  Settings as SettingsIcon, CreditCard,
-} from 'lucide-react';
+import { Menu as MenuIcon } from 'lucide-react';
 import { AppProvider, useApp } from './AppContext';
 import { translations } from './translations';
 import { pageVariants, pageTransition } from './animations/config';
@@ -40,129 +37,6 @@ const isPublicSite = (): boolean =>
   window.location.pathname.startsWith('/website') ||
   window.location.search.includes('view=shop');
 
-// ── Mobile bottom navigation ─────────────────────────────────
-interface MobileBottomNavProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-  openSidebar: () => void;
-  isAdmin: boolean;
-  theme: 'dark' | 'light';
-  language: string;
-}
-
-const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, setActiveTab, openSidebar, isAdmin, theme, language }) => {
-  const isDark = theme === 'dark';
-  const isAr = language === 'ar';
-
-  const tabs = isAdmin
-    ? [
-        { id: 'dashboard', icon: LayoutDashboard, label: isAr ? 'الرئيسية' : 'Accueil' },
-        { id: 'pos',       icon: Calculator,      label: isAr ? 'البيع'    : 'Vente'   },
-        { id: 'inventory', icon: Package,          label: isAr ? 'المخزون' : 'Stock'   },
-        { id: 'clients',   icon: UserPlus,         label: isAr ? 'العملاء' : 'Clients' },
-      ]
-    : [
-        { id: 'dashboard',      icon: LayoutDashboard, label: isAr ? 'الرئيسية'    : 'Accueil'  },
-        { id: 'pos',            icon: Calculator,      label: isAr ? 'البيع'       : 'Vente'    },
-        { id: 'clients',        icon: UserPlus,        label: isAr ? 'العملاء'     : 'Clients'  },
-        { id: 'myPayroll',      icon: CreditCard,      label: isAr ? 'مستحقاتي'   : 'Paie'     },
-        { id: 'settings',       icon: SettingsIcon,    label: isAr ? 'الإعدادات'  : 'Réglages' },
-      ];
-
-  return (
-    <div
-      className="md:hidden"
-      style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 45,
-        background: isDark
-          ? 'rgba(8,11,16,0.96)'
-          : 'rgba(250,247,242,0.98)',
-        borderTop: isDark
-          ? '1px solid rgba(192,200,212,0.10)'
-          : '1px solid rgba(201,168,76,0.22)',
-        backdropFilter: 'blur(24px) saturate(200%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(200%)',
-        display: 'flex',
-        alignItems: 'stretch',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-        boxShadow: isDark
-          ? '0 -8px 32px rgba(0,0,0,0.6)'
-          : '0 -4px 24px rgba(0,0,0,0.08)',
-      }}
-      dir={isAr ? 'rtl' : 'ltr'}
-    >
-      {tabs.map(tab => {
-        const isActive = activeTab === tab.id;
-        return (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            style={{
-              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              justifyContent: 'center', gap: 3, padding: '10px 4px 8px',
-              background: 'none', border: 'none', cursor: 'pointer',
-              position: 'relative', transition: 'opacity 0.15s',
-              minHeight: 56,
-            }}
-          >
-            {isActive && (
-              <motion.div
-                layoutId="bottom-nav-indicator"
-                style={{
-                  position: 'absolute', top: 0, left: '15%', right: '15%', height: 2,
-                  background: 'linear-gradient(90deg, #C9A84C, #E0C060, #C9A84C)',
-                  borderRadius: '0 0 2px 2px',
-                }}
-                transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-              />
-            )}
-            <tab.icon
-              size={20}
-              style={{
-                color: isActive
-                  ? (isDark ? '#C9A84C' : '#C9A84C')
-                  : (isDark ? 'rgba(192,200,212,0.38)' : 'rgba(90,74,58,0.40)'),
-                transition: 'color 0.2s',
-              }}
-            />
-            <span style={{
-              fontSize: 10, fontWeight: isActive ? 700 : 500,
-              letterSpacing: '0.04em',
-              color: isActive
-                ? (isDark ? '#C9A84C' : '#C9A84C')
-                : (isDark ? 'rgba(192,200,212,0.38)' : 'rgba(90,74,58,0.40)'),
-              transition: 'color 0.2s',
-            }}>
-              {tab.label}
-            </span>
-          </button>
-        );
-      })}
-
-      {/* More / sidebar toggle */}
-      <button
-        onClick={openSidebar}
-        style={{
-          flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'center', gap: 3, padding: '10px 4px 8px',
-          background: 'none', border: 'none', cursor: 'pointer',
-          minHeight: 56,
-        }}
-      >
-        <MenuIcon
-          size={20}
-          style={{ color: isDark ? 'rgba(192,200,212,0.38)' : 'rgba(90,74,58,0.40)' }}
-        />
-        <span style={{
-          fontSize: 10, fontWeight: 500, letterSpacing: '0.04em',
-          color: isDark ? 'rgba(192,200,212,0.38)' : 'rgba(90,74,58,0.40)',
-        }}>
-          {isAr ? 'المزيد' : 'Plus'}
-        </span>
-      </button>
-    </div>
-  );
-};
 
 const MainLayout: React.FC = () => {
   const { user, language, isLoading, theme } = useApp();
@@ -345,21 +219,10 @@ const MainLayout: React.FC = () => {
                 {renderContent()}
               </motion.div>
             </AnimatePresence>
-            {/* Spacer so content isn't hidden behind mobile bottom nav */}
-            <div className="md:hidden" style={{ height: 72 }} />
           </div>
         </main>
       </div>
 
-      {/* Mobile bottom navigation */}
-      <MobileBottomNav
-        activeTab={activeTab}
-        setActiveTab={handleTabChange}
-        openSidebar={() => setIsMobileMenuOpen(true)}
-        isAdmin={isAdmin}
-        theme={theme}
-        language={language}
-      />
     </div>
   );
 };

@@ -50,7 +50,7 @@ const OffersTab: React.FC = () => {
   const empty = {
     name: '', image: null as string | null, silverTypeId: '', calibre: '', form: '',
     pricingMode: 'perGram' as 'perGram' | 'alaPiece', weight: 0, pricePerGram: 0, totalPrice: 0,
-    unitPrice: 0, showQuantity: false, quantity: 0, isHidden: false,
+    unitPrice: 0, showQuantity: false, quantity: 0, showWeight: false, isHidden: false,
   };
   const [form, setForm] = useState(empty);
 
@@ -62,7 +62,7 @@ const OffersTab: React.FC = () => {
   const openCreate = () => { setEditing(null); setForm(empty); setShowModal(true); };
   const openEdit = (o: WebOffer) => {
     setEditing(o);
-    setForm({ name: o.name, image: o.image, silverTypeId: o.silverTypeId, calibre: o.calibre, form: o.form, pricingMode: o.pricingMode, weight: o.weight ?? 0, pricePerGram: o.pricePerGram ?? 0, totalPrice: o.totalPrice, unitPrice: o.unitPrice ?? 0, showQuantity: o.showQuantity, quantity: o.quantity ?? 0, isHidden: o.isHidden });
+    setForm({ name: o.name, image: o.image, silverTypeId: o.silverTypeId, calibre: o.calibre, form: o.form, pricingMode: o.pricingMode, weight: o.weight ?? 0, pricePerGram: o.pricePerGram ?? 0, totalPrice: o.totalPrice, unitPrice: o.unitPrice ?? 0, showQuantity: o.showQuantity, quantity: o.quantity ?? 0, showWeight: o.showWeight ?? false, isHidden: o.isHidden });
     setShowModal(true);
   };
 
@@ -251,16 +251,27 @@ const OffersTab: React.FC = () => {
                     <input type="number" value={form.unitPrice} onChange={e => setForm(f => ({ ...f, unitPrice: +e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
                   </div>
                 )}
-                {/* Quantity toggle */}
-                <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <div
-                    onClick={() => setForm(f => ({ ...f, showQuantity: !f.showQuantity }))}
-                    style={{ width: 40, height: 22, borderRadius: 11, background: form.showQuantity ? 'var(--gold)' : 'var(--border)', transition: 'all 0.2s', position: 'relative', cursor: 'pointer' }}
-                  >
-                    <div style={{ width: 18, height: 18, background: 'white', borderRadius: '50%', position: 'absolute', top: 2, left: form.showQuantity ? 20 : 2, transition: 'all 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} />
-                  </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--silver-200)' }}>Afficher les quantités</span>
-                </label>
+                {/* Toggles row */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                    <div
+                      onClick={() => setForm(f => ({ ...f, showQuantity: !f.showQuantity }))}
+                      style={{ width: 40, height: 22, borderRadius: 11, background: form.showQuantity ? 'var(--gold)' : 'var(--border)', transition: 'all 0.2s', position: 'relative', cursor: 'pointer', flexShrink: 0 }}
+                    >
+                      <div style={{ width: 18, height: 18, background: 'white', borderRadius: '50%', position: 'absolute', top: 2, left: form.showQuantity ? 20 : 2, transition: 'all 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} />
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--silver-200)' }}>Afficher les quantités</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                    <div
+                      onClick={() => setForm(f => ({ ...f, showWeight: !f.showWeight }))}
+                      style={{ width: 40, height: 22, borderRadius: 11, background: form.showWeight ? 'var(--gold)' : 'var(--border)', transition: 'all 0.2s', position: 'relative', cursor: 'pointer', flexShrink: 0 }}
+                    >
+                      <div style={{ width: 18, height: 18, background: 'white', borderRadius: '50%', position: 'absolute', top: 2, left: form.showWeight ? 20 : 2, transition: 'all 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} />
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--silver-200)' }}>Afficher le poids sur la carte</span>
+                  </label>
+                </div>
                 {form.showQuantity && (
                   <div>
                     <label className="lux-label">Quantité disponible</label>
@@ -338,7 +349,7 @@ const SpecialOffersTab: React.FC = () => {
   const emptyForm = {
     name: '', image: null as string | null, silverTypeId: '', calibre: '', form: '',
     pricingMode: 'perGram' as 'perGram' | 'alaPiece', weight: 0, pricePerGram: 0, originalPrice: 0,
-    specialPrice: 0, unitPrice: 0, showQuantity: false, quantity: 0,
+    specialPrice: 0, unitPrice: 0, showQuantity: false, quantity: 0, showWeight: false,
     isHidden: false, isActive: false, startDate: '', startHour: '', endDate: '', endHour: '',
   };
   const [form, setForm] = useState(emptyForm);
@@ -352,7 +363,7 @@ const SpecialOffersTab: React.FC = () => {
   const openEdit = (o: WebSpecialOffer) => {
     setEditing(o);
     const origPrice = o.pricingMode === 'alaPiece' ? (o.unitPrice ?? 0) : o.originalPrice;
-    setForm({ name: o.name, image: o.image, silverTypeId: o.silverTypeId, calibre: o.calibre, form: o.form, pricingMode: o.pricingMode, weight: o.weight ?? 0, pricePerGram: o.pricePerGram ?? 0, originalPrice: origPrice, specialPrice: o.specialPrice, unitPrice: o.unitPrice ?? 0, showQuantity: o.showQuantity, quantity: o.quantity ?? 0, isHidden: o.isHidden, isActive: o.isActive, startDate: o.startDate, startHour: o.startHour, endDate: o.endDate, endHour: o.endHour });
+    setForm({ name: o.name, image: o.image, silverTypeId: o.silverTypeId, calibre: o.calibre, form: o.form, pricingMode: o.pricingMode, weight: o.weight ?? 0, pricePerGram: o.pricePerGram ?? 0, originalPrice: origPrice, specialPrice: o.specialPrice, unitPrice: o.unitPrice ?? 0, showQuantity: o.showQuantity, quantity: o.quantity ?? 0, showWeight: o.showWeight ?? false, isHidden: o.isHidden, isActive: o.isActive, startDate: o.startDate, startHour: o.startHour, endDate: o.endDate, endHour: o.endHour });
     setShowModal(true);
   };
 
@@ -582,15 +593,26 @@ const SpecialOffersTab: React.FC = () => {
                     <input type="time" value={form.endHour} onChange={e => setForm(f => ({ ...f, endHour: e.target.value }))} className="lux-input" style={{ marginTop: 6 }} />
                   </div>
                 </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <div
-                    onClick={() => setForm(f => ({ ...f, showQuantity: !f.showQuantity }))}
-                    style={{ width: 40, height: 22, borderRadius: 11, background: form.showQuantity ? 'var(--gold)' : 'var(--border)', transition: 'all 0.2s', position: 'relative', cursor: 'pointer' }}
-                  >
-                    <div style={{ width: 18, height: 18, background: 'white', borderRadius: '50%', position: 'absolute', top: 2, left: form.showQuantity ? 20 : 2, transition: 'all 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} />
-                  </div>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--silver-200)' }}>Afficher les quantités</span>
-                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                    <div
+                      onClick={() => setForm(f => ({ ...f, showQuantity: !f.showQuantity }))}
+                      style={{ width: 40, height: 22, borderRadius: 11, background: form.showQuantity ? 'var(--gold)' : 'var(--border)', transition: 'all 0.2s', position: 'relative', cursor: 'pointer', flexShrink: 0 }}
+                    >
+                      <div style={{ width: 18, height: 18, background: 'white', borderRadius: '50%', position: 'absolute', top: 2, left: form.showQuantity ? 20 : 2, transition: 'all 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} />
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--silver-200)' }}>Afficher les quantités</span>
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                    <div
+                      onClick={() => setForm(f => ({ ...f, showWeight: !f.showWeight }))}
+                      style={{ width: 40, height: 22, borderRadius: 11, background: form.showWeight ? 'var(--gold)' : 'var(--border)', transition: 'all 0.2s', position: 'relative', cursor: 'pointer', flexShrink: 0 }}
+                    >
+                      <div style={{ width: 18, height: 18, background: 'white', borderRadius: '50%', position: 'absolute', top: 2, left: form.showWeight ? 20 : 2, transition: 'all 0.2s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} />
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--silver-200)' }}>Afficher le poids sur la carte</span>
+                  </label>
+                </div>
                 {form.showQuantity && (
                   <div>
                     <label className="lux-label">Quantité</label>
@@ -662,6 +684,18 @@ const DeliveryTab: React.FC = () => {
   const [companyForm, setCompanyForm] = useState({ name: '', phone: '' });
   const [selectedWilayaCode, setSelectedWilayaCode] = useState<number | ''>('');
   const [communesInput, setCommunesInput] = useState('');
+
+  const handleWilayaSelect = (code: number | '') => {
+    setSelectedWilayaCode(code);
+    if (code) {
+      const wilaya = ALGERIA_WILAYAS.find(w => w.code === code);
+      if (wilaya?.communes?.length) {
+        setCommunesInput(wilaya.communes.join(', '));
+      }
+    } else {
+      setCommunesInput('');
+    }
+  };
   const [toBureau, setToBureau] = useState(0);
   const [toHome, setToHome] = useState(0);
 
@@ -809,7 +843,7 @@ const DeliveryTab: React.FC = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                     <div>
                       <label className="lux-label">Wilaya</label>
-                      <select value={selectedWilayaCode} onChange={e => setSelectedWilayaCode(+e.target.value)} className="lux-select" style={{ marginTop: 6 }}>
+                      <select value={selectedWilayaCode} onChange={e => handleWilayaSelect(e.target.value ? +e.target.value : '')} className="lux-select" style={{ marginTop: 6 }}>
                         <option value="">-- Choisir --</option>
                         {ALGERIA_WILAYAS.map(w => <option key={w.code} value={w.code}>{w.code}. {w.name}</option>)}
                       </select>

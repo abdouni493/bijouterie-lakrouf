@@ -410,22 +410,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         const woData = ok<any[]>(woRes);
         if (woData?.length) setWebOffers(woData.map(r => ({
-          id: String(r.id), name: r.name, image: r.image || null,
+          id: String(r.id), name: r.name, image: r.image_url || r.image || null,
           silverTypeId: r.silver_type_id, calibre: r.calibre, form: r.form,
           pricingMode: r.pricing_mode, weight: r.weight, pricePerGram: r.price_per_gram,
           totalPrice: Number(r.total_price || 0), unitPrice: r.unit_price,
           showQuantity: Boolean(r.show_quantity), quantity: Number(r.quantity || 0),
+          showWeight: Boolean(r.show_weight),
           isHidden: Boolean(r.is_hidden), createdAt: r.created_at,
         })));
 
         const wsoData = ok<any[]>(wsoRes);
         if (wsoData?.length) setWebSpecialOffers(wsoData.map(r => ({
-          id: String(r.id), name: r.name, image: r.image || null,
+          id: String(r.id), name: r.name, image: r.image_url || r.image || null,
           silverTypeId: r.silver_type_id, calibre: r.calibre, form: r.form,
           pricingMode: r.pricing_mode, weight: r.weight, pricePerGram: r.price_per_gram,
           unitPrice: r.unit_price, originalPrice: Number(r.original_price || 0),
           specialPrice: Number(r.special_price || 0),
           showQuantity: Boolean(r.show_quantity), quantity: Number(r.quantity || 0),
+          showWeight: Boolean(r.show_weight),
           isHidden: Boolean(r.is_hidden), isActive: Boolean(r.is_active),
           startDate: r.start_date, startHour: r.start_hour,
           endDate: r.end_date, endHour: r.end_hour, createdAt: r.created_at,
@@ -1391,10 +1393,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const id = Date.now().toString();
     const createdAt = new Date().toISOString();
     const { error } = await supabase.from('web_offers').insert({
-      id, name: o.name, image: o.image, silver_type_id: o.silverTypeId, calibre: o.calibre, form: o.form,
+      id, name: o.name, silver_type_id: o.silverTypeId, calibre: o.calibre, form: o.form,
       pricing_mode: o.pricingMode, weight: o.weight, price_per_gram: o.pricePerGram,
       total_price: o.totalPrice, unit_price: o.unitPrice,
-      show_quantity: o.showQuantity, quantity: o.quantity, is_hidden: o.isHidden, created_at: createdAt,
+      show_quantity: o.showQuantity, quantity: o.quantity,
+      show_weight: o.showWeight ?? false,
+      is_hidden: o.isHidden, created_at: createdAt,
     });
     if (error) { console.error('[addWebOffer]', error.message); return; }
     setWebOffers(prev => [...prev, { ...o, id, createdAt }]);
@@ -1405,10 +1409,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!existing) return;
     const merged = { ...existing, ...o };
     const { error } = await supabase.from('web_offers').update({
-      name: merged.name, image: merged.image, silver_type_id: merged.silverTypeId, calibre: merged.calibre, form: merged.form,
+      name: merged.name, silver_type_id: merged.silverTypeId, calibre: merged.calibre, form: merged.form,
       pricing_mode: merged.pricingMode, weight: merged.weight, price_per_gram: merged.pricePerGram,
       total_price: merged.totalPrice, unit_price: merged.unitPrice,
-      show_quantity: merged.showQuantity, quantity: merged.quantity, is_hidden: merged.isHidden,
+      show_quantity: merged.showQuantity, quantity: merged.quantity,
+      show_weight: merged.showWeight ?? false,
+      is_hidden: merged.isHidden,
     }).eq('id', id);
     if (error) { console.error('[updateWebOffer]', error.message); return; }
     setWebOffers(prev => prev.map(item => item.id === id ? merged : item));
@@ -1425,10 +1431,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const id = Date.now().toString();
     const createdAt = new Date().toISOString();
     const { error } = await supabase.from('web_special_offers').insert({
-      id, name: o.name, image: o.image, silver_type_id: o.silverTypeId, calibre: o.calibre, form: o.form,
+      id, name: o.name, silver_type_id: o.silverTypeId, calibre: o.calibre, form: o.form,
       pricing_mode: o.pricingMode, weight: o.weight, price_per_gram: o.pricePerGram,
       unit_price: o.unitPrice, original_price: o.originalPrice, special_price: o.specialPrice,
-      show_quantity: o.showQuantity, quantity: o.quantity, is_hidden: o.isHidden, is_active: o.isActive,
+      show_quantity: o.showQuantity, quantity: o.quantity,
+      show_weight: o.showWeight ?? false,
+      is_hidden: o.isHidden, is_active: o.isActive,
       start_date: o.startDate, start_hour: o.startHour, end_date: o.endDate, end_hour: o.endHour,
       created_at: createdAt,
     });
@@ -1441,10 +1449,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!existing) return;
     const merged = { ...existing, ...o };
     const { error } = await supabase.from('web_special_offers').update({
-      name: merged.name, image: merged.image, silver_type_id: merged.silverTypeId, calibre: merged.calibre, form: merged.form,
+      name: merged.name, silver_type_id: merged.silverTypeId, calibre: merged.calibre, form: merged.form,
       pricing_mode: merged.pricingMode, weight: merged.weight, price_per_gram: merged.pricePerGram,
       unit_price: merged.unitPrice, original_price: merged.originalPrice, special_price: merged.specialPrice,
-      show_quantity: merged.showQuantity, quantity: merged.quantity, is_hidden: merged.isHidden, is_active: merged.isActive,
+      show_quantity: merged.showQuantity, quantity: merged.quantity,
+      show_weight: merged.showWeight ?? false,
+      is_hidden: merged.isHidden, is_active: merged.isActive,
       start_date: merged.startDate, start_hour: merged.startHour, end_date: merged.endDate, end_hour: merged.endHour,
     }).eq('id', id);
     if (error) { console.error('[updateWebSpecialOffer]', error.message); return; }

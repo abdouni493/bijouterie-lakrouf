@@ -312,6 +312,7 @@ export interface WebOffer {
   unitPrice?: number;
   showQuantity: boolean;
   quantity?: number;
+  showWeight: boolean;
   isHidden: boolean;
   createdAt: string;
 }
@@ -332,6 +333,7 @@ export interface WebSpecialOffer {
   unitPrice?: number;
   showQuantity: boolean;
   quantity?: number;
+  showWeight: boolean;
   isHidden: boolean;
   isActive: boolean;
   startDate: string;

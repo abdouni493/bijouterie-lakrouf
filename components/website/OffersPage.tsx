@@ -333,8 +333,10 @@ const OffersPage: React.FC<OffersPageProps> = ({ lang, cart, setCart, theme = 'd
                   <ProductCard
                     image={offer.image}
                     title={offer.name}
-                    subtitle={t.subtitle}
-                    price={offer.unitPrice ? `${offer.unitPrice.toLocaleString('fr-DZ')} DA` : undefined}
+                    subtitle={offer.showWeight && offer.weight ? `${offer.weight}g — ${t.subtitle}` : t.subtitle}
+                    price={offer.pricingMode === 'perGram'
+                      ? `${offer.totalPrice.toLocaleString('fr-DZ')} DA`
+                      : offer.unitPrice ? `${offer.unitPrice.toLocaleString('fr-DZ')} DA` : undefined}
                     onAddToCart={() => addToCart(offer)}
                     onViewDetails={() => openModal(offer)}
                     isAdded={addedIds.has(offer.id)}
