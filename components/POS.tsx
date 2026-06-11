@@ -14,7 +14,7 @@ const POS: React.FC = () => {
     const n = st.name.toLowerCase();
     return n.includes('import') || n.includes('ital') || n.includes('italie') || n.includes('importé') || n.includes('imported');
   });
-  const [selectedType, setSelectedType] = useState(importedType?.id || silverTypes[0]?.id || '');
+  const [selectedType, setSelectedType] = useState(importedType?.id || silverTypes.find(st => !st.isCassie)?.id || '');
   const [selectedShape, setSelectedShape] = useState<SilverShape>('' as SilverShape);
   const [weight, setWeight] = useState('');
   const [pricePerGram, setPricePerGram] = useState('');
@@ -134,7 +134,7 @@ const POS: React.FC = () => {
       const n = st.name.toLowerCase();
       return n.includes('import') || n.includes('ital') || n.includes('italie') || n.includes('importé') || n.includes('imported');
     });
-    setSelectedType(imported?.id || silverTypes[0]?.id || '');
+    setSelectedType(imported?.id || silverTypes.find(st => !st.isCassie)?.id || '');
   }, [silverTypes]);
 
   React.useEffect(() => {
