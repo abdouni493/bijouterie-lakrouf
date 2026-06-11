@@ -15,7 +15,7 @@ const POS: React.FC = () => {
     return n.includes('import') || n.includes('ital') || n.includes('italie') || n.includes('importé') || n.includes('imported');
   });
   const [selectedType, setSelectedType] = useState(importedType?.id || silverTypes[0]?.id || '');
-  const [selectedShape, setSelectedShape] = useState<SilverShape>(shapes?.[0] || 'ring');
+  const [selectedShape, setSelectedShape] = useState<SilverShape>('' as SilverShape);
   const [weight, setWeight] = useState('');
   const [pricePerGram, setPricePerGram] = useState('');
   const [inputMode, setInputMode] = useState<'weight' | 'total' | 'weight_total'>('weight');
@@ -61,6 +61,10 @@ const POS: React.FC = () => {
   const handleCreate = () => {
     if (!selectedType) {
       alert(language === 'ar' ? 'يرجى اختيار نوع الفضة' : "Veuillez sélectionner un type d'argent");
+      return;
+    }
+    if (!selectedShape) {
+      alert(language === 'ar' ? 'يرجى اختيار شكل المجوهرات' : 'Veuillez sélectionner une forme');
       return;
     }
     if (isAlaPiece) {
@@ -141,14 +145,9 @@ const POS: React.FC = () => {
     else setPricePerGram('');
   }, [weight, totalInput, inputMode]);
 
-  // When switching type, reset shape to first available
+  // When switching type, reset shape and fields
   React.useEffect(() => {
-    const st = silverTypes.find(s => s.id === selectedType);
-    if (!st) return;
-    const isAP = !!(st as any).isAlaPiece;
-    const shapeKeys = isAP ? Object.keys(st.shapes) : shapes;
-    if (shapeKeys.length > 0) setSelectedShape(shapeKeys[0] as SilverShape);
-    // reset piece fields
+    setSelectedShape('' as SilverShape);
     setPieceQuantity('');
     setPricePerPiece('');
     setWeight('');
@@ -156,6 +155,7 @@ const POS: React.FC = () => {
   }, [selectedType]);
 
   const resetForm = () => {
+    setSelectedShape('' as SilverShape);
     setWeight('');
     setPricePerGram('');
     setClientName('');
@@ -211,69 +211,26 @@ const POS: React.FC = () => {
           {/* Shape selector */}
           <div>
             <label className="lux-label">{t.selectShape}</label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 8 }}>
-              {availableShapes.map(s => {
-                const isSelected = selectedShape === s;
-                const stock = isAlaPiece && selectedST ? Math.round(Number((selectedST.shapes as any)[s]) || 0) : null;
-                return (
-                  <button
-                    key={s}
-                    type="button"
-                    onClick={() => setSelectedShape(s as SilverShape)}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 6,
-                      padding: '12px 14px',
-                      borderRadius: 14,
-                      border: `2px solid ${isSelected ? 'var(--gold-pure)' : 'rgba(192,200,212,0.15)'}`,
-                      background: isSelected ? 'rgba(201,168,76,0.1)' : 'var(--glass-bg, rgba(255,255,255,0.03))',
-                      cursor: 'pointer',
-                      transition: 'all 0.18s',
-                      minWidth: 76,
-                      position: 'relative',
-                    }}
-                  >
-                    <div style={{
-                      width: 36, height: 36, borderRadius: 10,
-                      background: isSelected ? 'rgba(201,168,76,0.2)' : 'rgba(192,200,212,0.08)',
-                      border: `1px solid ${isSelected ? 'rgba(201,168,76,0.4)' : 'rgba(192,200,212,0.12)'}`,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 15, fontWeight: 800,
-                      color: isSelected ? 'var(--gold-pure)' : 'var(--platinum-400)',
-                    }}>
-                      {s.charAt(0).toUpperCase()}
-                    </div>
-                    <span style={{
-                      fontSize: 11, fontWeight: 700,
-                      color: isSelected ? 'var(--gold-pure)' : 'var(--ink-700)',
-                      textAlign: 'center',
-                      lineHeight: 1.2,
-                      maxWidth: 80,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {(t as any)[s + 's'] || s}
-                    </span>
-                    {stock !== null && (
-                      <span style={{
-                        position: 'absolute', top: -7, right: -7,
-                        fontSize: 9, fontWeight: 800,
-                        padding: '2px 6px', borderRadius: 6,
-                        background: stock === 0 ? 'var(--danger)' : stock < 5 ? '#F59E0B' : 'var(--info)',
-                        color: '#fff',
-                        lineHeight: 1.4,
-                        boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                      }}>
-                        {stock}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            <select
+              value={selectedShape}
+              onChange={(e) => setSelectedShape(e.target.value as SilverShape)}
+              className="lux-select"
+            >
+              <option value="">— Sélectionner une forme —</option>
+              {availableShapes.map(s => (
+                <option key={s} value={s}>{(t as any)[s + 's'] || s}</option>
+              ))}
+            </select>
+
+            {isAlaPiece && selectedShape && currentShapeStock !== null && (
+              <div style={{ marginTop: 8 }}>
+                <span className={currentShapeStock === 0 ? 'badge badge-danger' : currentShapeStock < 5 ? 'badge badge-warning' : 'badge badge-info'}>
+                  Stock: {currentShapeStock} pcs
+                  {currentShapeStock === 0 && ' — Rupture !'}
+                  {currentShapeStock > 0 && currentShapeStock < 5 && ' — Faible !'}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Weight / Price section — ONLY for non-À la Pièce */}
