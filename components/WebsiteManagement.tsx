@@ -177,6 +177,7 @@ interface OfferModalProps {
 const OfferModal: React.FC<OfferModalProps> = ({ open, onClose, editing, onSave, silverTypes, shapes }) => {
   const [f, setF] = useState({ ...OFFER_EMPTY });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [calcMode, setCalcMode] = useState<'pgToTotal' | 'totalToPg'>('pgToTotal');
 
   useEffect(() => {
     if (editing) {
@@ -192,17 +193,19 @@ const OfferModal: React.FC<OfferModalProps> = ({ open, onClose, editing, onSave,
     } else {
       setF({ ...OFFER_EMPTY });
     }
+    setCalcMode('pgToTotal');
     setErrors({});
   }, [editing, open]);
-
-  const autoTotal = f.pricingMode === 'perGram' ? (f.weight || 0) * (f.pricePerGram || 0) : f.unitPrice || 0;
 
   const validate = () => {
     const e: Record<string, string> = {};
     if (!f.name.trim()) e.name = 'Nom requis';
     if (!f.silverTypeId) e.silverTypeId = 'Type d\'argent requis';
-    if (f.pricingMode === 'perGram' && !f.weight) e.weight = 'Poids requis';
-    if (f.pricingMode === 'perGram' && !f.pricePerGram) e.pricePerGram = 'Prix/g requis';
+    if (f.pricingMode === 'perGram') {
+      if (!f.weight) e.weight = 'Poids requis';
+      if (calcMode === 'pgToTotal' && !f.pricePerGram) e.pricePerGram = 'Prix/g requis';
+      if (calcMode === 'totalToPg' && !f.totalPrice) e.totalPrice = 'Total requis';
+    }
     if (f.pricingMode === 'alaPiece' && !f.unitPrice) e.unitPrice = 'Prix unitaire requis';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -210,7 +213,7 @@ const OfferModal: React.FC<OfferModalProps> = ({ open, onClose, editing, onSave,
 
   const handleSave = () => {
     if (!validate()) return;
-    const total = f.pricingMode === 'perGram' ? (f.weight || 0) * (f.pricePerGram || 0) : f.unitPrice || 0;
+    const total = f.pricingMode === 'perGram' ? (f.totalPrice || 0) : f.unitPrice || 0;
     onSave({ ...f, totalPrice: total });
     onClose();
   };
@@ -328,37 +331,102 @@ const OfferModal: React.FC<OfferModalProps> = ({ open, onClose, editing, onSave,
                   <AnimatePresence mode="wait">
                     {f.pricingMode === 'perGram' ? (
                       <motion.div key="pg" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}
-                        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}
+                        style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
                       >
-                        <div>
-                          <label className="lux-label">Poids (g)</label>
-                          <input
-                            type="number" value={f.weight || ''}
-                            onChange={e => setF(prev => ({ ...prev, weight: +e.target.value }))}
-                            className="lux-input" style={{ marginTop: 6, borderColor: errors.weight ? '#ef4444' : undefined }}
-                            placeholder="0.00"
-                          />
-                          <ErrMsg field="weight" />
+                        {/* Calc mode sub-toggle */}
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          {(['pgToTotal', 'totalToPg'] as const).map(m => (
+                            <button
+                              key={m}
+                              onClick={() => {
+                                setCalcMode(m);
+                                if (m === 'pgToTotal') setF(prev => ({ ...prev, totalPrice: (prev.weight || 0) * (prev.pricePerGram || 0) }));
+                                else setF(prev => ({ ...prev, pricePerGram: prev.weight > 0 && prev.totalPrice > 0 ? +(prev.totalPrice / prev.weight).toFixed(2) : prev.pricePerGram }));
+                              }}
+                              style={{
+                                flex: 1, padding: '7px 0', borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                                background: calcMode === m ? 'rgba(255,255,255,0.07)' : 'transparent',
+                                border: `1.5px solid ${calcMode === m ? 'var(--silver-300)' : 'var(--border)'}`,
+                                color: calcMode === m ? 'var(--silver-100)' : 'var(--silver-400)',
+                                transition: 'all 0.2s',
+                              }}
+                            >
+                              {m === 'pgToTotal' ? 'Poids + Prix/g → Total' : 'Poids + Total → Prix/g'}
+                            </button>
+                          ))}
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                          <div>
+                            <label className="lux-label">Poids (g)</label>
+                            <input
+                              type="number" value={f.weight || ''}
+                              onChange={e => {
+                                const w = +e.target.value;
+                                setF(prev => ({
+                                  ...prev, weight: w,
+                                  ...(calcMode === 'pgToTotal'
+                                    ? { totalPrice: w * (prev.pricePerGram || 0) }
+                                    : { pricePerGram: w > 0 && prev.totalPrice > 0 ? +(prev.totalPrice / w).toFixed(2) : 0 }
+                                  )
+                                }));
+                              }}
+                              className="lux-input" style={{ marginTop: 6, borderColor: errors.weight ? '#ef4444' : undefined }}
+                              placeholder="0.00"
+                            />
+                            <ErrMsg field="weight" />
+                          </div>
+                          {calcMode === 'pgToTotal' ? (
+                            <div>
+                              <label className="lux-label">Prix / g (DA)</label>
+                              <input
+                                type="number" value={f.pricePerGram || ''}
+                                onChange={e => {
+                                  const pg = +e.target.value;
+                                  setF(prev => ({ ...prev, pricePerGram: pg, totalPrice: (prev.weight || 0) * pg }));
+                                }}
+                                className="lux-input" style={{ marginTop: 6, borderColor: errors.pricePerGram ? '#ef4444' : undefined }}
+                                placeholder="0"
+                              />
+                              <ErrMsg field="pricePerGram" />
+                            </div>
+                          ) : (
+                            <div>
+                              <label className="lux-label">Prix / g (DA)</label>
+                              <div style={{
+                                marginTop: 6, padding: '10px 14px', borderRadius: 12,
+                                background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
+                                fontSize: 14, fontWeight: 700, color: 'var(--silver-200)',
+                              }}>
+                                {f.pricePerGram > 0 ? f.pricePerGram.toFixed(2) : '—'} DA/g
+                              </div>
+                            </div>
+                          )}
                         </div>
                         <div>
-                          <label className="lux-label">Prix / g (DA)</label>
+                          <label className="lux-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            Total (DA)
+                            {calcMode === 'pgToTotal' && (
+                              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--gold)', background: 'rgba(201,168,76,0.12)', padding: '1px 6px', borderRadius: 4, letterSpacing: '0.05em' }}>MODIFIABLE</span>
+                            )}
+                          </label>
                           <input
-                            type="number" value={f.pricePerGram || ''}
-                            onChange={e => setF(prev => ({ ...prev, pricePerGram: +e.target.value }))}
-                            className="lux-input" style={{ marginTop: 6, borderColor: errors.pricePerGram ? '#ef4444' : undefined }}
+                            type="number"
+                            value={f.totalPrice || ''}
+                            onChange={e => {
+                              const t = +e.target.value;
+                              setF(prev => ({
+                                ...prev, totalPrice: t,
+                                ...(calcMode === 'totalToPg' && prev.weight > 0 ? { pricePerGram: +(t / prev.weight).toFixed(2) } : {})
+                              }));
+                            }}
+                            className="lux-input"
+                            style={{
+                              marginTop: 6, fontSize: 16, fontWeight: 800, color: 'var(--gold)',
+                              background: 'rgba(201,168,76,0.06)', borderColor: errors.totalPrice ? '#ef4444' : 'rgba(201,168,76,0.3)',
+                            }}
                             placeholder="0"
                           />
-                          <ErrMsg field="pricePerGram" />
-                        </div>
-                        <div style={{ gridColumn: '1/-1' }}>
-                          <label className="lux-label">Total (DA)</label>
-                          <div style={{
-                            marginTop: 6, padding: '12px 16px', borderRadius: 12,
-                            background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.25)',
-                            fontSize: 18, fontWeight: 800, color: 'var(--gold)',
-                          }}>
-                            {autoTotal.toLocaleString()} DA
-                          </div>
+                          <ErrMsg field="totalPrice" />
                         </div>
                       </motion.div>
                     ) : (
@@ -448,6 +516,7 @@ interface SpecialOfferModalProps {
 const SpecialOfferModal: React.FC<SpecialOfferModalProps> = ({ open, onClose, editing, onSave, silverTypes, shapes }) => {
   const [f, setF] = useState({ ...SOFFER_EMPTY });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [calcMode, setCalcMode] = useState<'pgToTotal' | 'totalToPg'>('pgToTotal');
 
   useEffect(() => {
     if (editing) {
@@ -466,10 +535,10 @@ const SpecialOfferModal: React.FC<SpecialOfferModalProps> = ({ open, onClose, ed
     } else {
       setF({ ...SOFFER_EMPTY });
     }
+    setCalcMode('pgToTotal');
     setErrors({});
   }, [editing, open]);
 
-  const autoBase = f.pricingMode === 'perGram' ? (f.weight || 0) * (f.pricePerGram || 0) : f.unitPrice || 0;
   const discountPct = f.originalPrice > 0 && f.specialPrice > 0
     ? Math.round((f.originalPrice - f.specialPrice) / f.originalPrice * 100)
     : 0;
@@ -478,8 +547,11 @@ const SpecialOfferModal: React.FC<SpecialOfferModalProps> = ({ open, onClose, ed
     const e: Record<string, string> = {};
     if (!f.name.trim()) e.name = 'Nom requis';
     if (!f.silverTypeId) e.silverTypeId = 'Type d\'argent requis';
-    if (f.pricingMode === 'perGram' && !f.weight) e.weight = 'Poids requis';
-    if (f.pricingMode === 'perGram' && !f.pricePerGram) e.pricePerGram = 'Prix/g requis';
+    if (f.pricingMode === 'perGram') {
+      if (!f.weight) e.weight = 'Poids requis';
+      if (calcMode === 'pgToTotal' && !f.pricePerGram) e.pricePerGram = 'Prix/g requis';
+      if (calcMode === 'totalToPg' && !f.originalPrice) e.originalPrice = 'Prix de base requis';
+    }
     if (f.pricingMode === 'alaPiece' && !f.unitPrice) e.unitPrice = 'Prix unitaire requis';
     if (!f.specialPrice) e.specialPrice = 'Prix spécial requis';
     if (!f.endDate) e.endDate = 'Date de fin requise';
@@ -489,8 +561,7 @@ const SpecialOfferModal: React.FC<SpecialOfferModalProps> = ({ open, onClose, ed
 
   const handleSave = () => {
     if (!validate()) return;
-    const origPrice = f.originalPrice || autoBase;
-    onSave({ ...f, originalPrice: origPrice });
+    onSave({ ...f });
     onClose();
   };
 
@@ -591,16 +662,62 @@ const SpecialOfferModal: React.FC<SpecialOfferModalProps> = ({ open, onClose, ed
                   <AnimatePresence mode="wait">
                     {f.pricingMode === 'perGram' ? (
                       <motion.div key="pg" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}
-                        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                        <div>
-                          <label className="lux-label">Poids (g)</label>
-                          <input type="number" value={f.weight || ''} onChange={e => setF(prev => ({ ...prev, weight: +e.target.value }))}
-                            className="lux-input" style={{ marginTop: 6 }} placeholder="0.00" />
+                        style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {/* Calc mode sub-toggle */}
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          {(['pgToTotal', 'totalToPg'] as const).map(m => (
+                            <button key={m} onClick={() => {
+                              setCalcMode(m);
+                              if (m === 'pgToTotal') setF(prev => ({ ...prev, originalPrice: (prev.weight || 0) * (prev.pricePerGram || 0) }));
+                              else setF(prev => ({ ...prev, pricePerGram: prev.weight > 0 && prev.originalPrice > 0 ? +(prev.originalPrice / prev.weight).toFixed(2) : prev.pricePerGram }));
+                            }} style={{
+                              flex: 1, padding: '7px 0', borderRadius: 10, fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                              background: calcMode === m ? 'rgba(255,255,255,0.07)' : 'transparent',
+                              border: `1.5px solid ${calcMode === m ? 'var(--silver-300)' : 'var(--border)'}`,
+                              color: calcMode === m ? 'var(--silver-100)' : 'var(--silver-400)', transition: 'all 0.2s',
+                            }}>
+                              {m === 'pgToTotal' ? 'Poids + Prix/g → Prix original' : 'Poids + Prix original → Prix/g'}
+                            </button>
+                          ))}
                         </div>
-                        <div>
-                          <label className="lux-label">Prix / g (DA)</label>
-                          <input type="number" value={f.pricePerGram || ''} onChange={e => setF(prev => ({ ...prev, pricePerGram: +e.target.value }))}
-                            className="lux-input" style={{ marginTop: 6 }} placeholder="0" />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                          <div>
+                            <label className="lux-label">Poids (g)</label>
+                            <input type="number" value={f.weight || ''} onChange={e => {
+                              const w = +e.target.value;
+                              setF(prev => ({
+                                ...prev, weight: w,
+                                ...(calcMode === 'pgToTotal'
+                                  ? { originalPrice: w * (prev.pricePerGram || 0) }
+                                  : { pricePerGram: w > 0 && prev.originalPrice > 0 ? +(prev.originalPrice / w).toFixed(2) : 0 }
+                                )
+                              }));
+                            }}
+                              className="lux-input" style={{ marginTop: 6, borderColor: errors.weight ? '#ef4444' : undefined }} placeholder="0.00" />
+                            <ErrMsg field="weight" />
+                          </div>
+                          {calcMode === 'pgToTotal' ? (
+                            <div>
+                              <label className="lux-label">Prix / g (DA)</label>
+                              <input type="number" value={f.pricePerGram || ''} onChange={e => {
+                                const pg = +e.target.value;
+                                setF(prev => ({ ...prev, pricePerGram: pg, originalPrice: (prev.weight || 0) * pg }));
+                              }}
+                                className="lux-input" style={{ marginTop: 6, borderColor: errors.pricePerGram ? '#ef4444' : undefined }} placeholder="0" />
+                              <ErrMsg field="pricePerGram" />
+                            </div>
+                          ) : (
+                            <div>
+                              <label className="lux-label">Prix / g (DA)</label>
+                              <div style={{
+                                marginTop: 6, padding: '10px 14px', borderRadius: 12,
+                                background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)',
+                                fontSize: 14, fontWeight: 700, color: 'var(--silver-200)',
+                              }}>
+                                {f.pricePerGram > 0 ? f.pricePerGram.toFixed(2) : '—'} DA/g
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </motion.div>
                     ) : (
@@ -635,13 +752,28 @@ const SpecialOfferModal: React.FC<SpecialOfferModalProps> = ({ open, onClose, ed
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
                   <div>
-                    <label className="lux-label">Prix original (DA)</label>
+                    <label className="lux-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      Prix original (DA)
+                      {f.pricingMode === 'perGram' && calcMode === 'pgToTotal' && (
+                        <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--gold)', background: 'rgba(201,168,76,0.12)', padding: '1px 6px', borderRadius: 4, letterSpacing: '0.05em' }}>AUTO</span>
+                      )}
+                    </label>
                     <input
                       type="number" value={f.originalPrice || ''}
-                      onChange={e => setF(prev => ({ ...prev, originalPrice: +e.target.value }))}
-                      className="lux-input" style={{ marginTop: 6 }}
-                      placeholder={`Auto: ${autoBase.toFixed(0)}`}
+                      onChange={e => {
+                        const p = +e.target.value;
+                        setF(prev => ({
+                          ...prev, originalPrice: p,
+                          ...(prev.pricingMode === 'perGram' && calcMode === 'totalToPg' && prev.weight > 0
+                            ? { pricePerGram: +(p / prev.weight).toFixed(2) }
+                            : {}
+                          )
+                        }));
+                      }}
+                      className="lux-input" style={{ marginTop: 6, borderColor: errors.originalPrice ? '#ef4444' : undefined }}
+                      placeholder="0"
                     />
+                    <ErrMsg field="originalPrice" />
                   </div>
                   <div>
                     <label className="lux-label">Prix spécial (DA)</label>
