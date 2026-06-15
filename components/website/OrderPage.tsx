@@ -67,10 +67,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ lang, cart, setCart, setCurrentPa
   const selectedWilaya = ALGERIA_WILAYAS.find(w => w.code === form.wilayaCode);
 
   const availableCompanies = webDeliveryCompanies.filter(c =>
-    c.wilayas.some(w =>
-      w.wilayaCode === form.wilayaCode &&
-      (w.communes.length === 0 || !form.commune || w.communes.includes(form.commune))
-    )
+    c.wilayas.some(w => w.wilayaCode === form.wilayaCode)
   );
 
   const selectedCompany = webDeliveryCompanies.find(c => c.id === form.deliveryCompanyId);

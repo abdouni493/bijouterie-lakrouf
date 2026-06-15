@@ -305,6 +305,7 @@ export interface WebOffer {
   silverTypeId: string;
   calibre: string;
   form: string;
+  sizes: string[];
   pricingMode: 'perGram' | 'alaPiece';
   weight?: number;
   pricePerGram?: number;
@@ -325,6 +326,7 @@ export interface WebSpecialOffer {
   silverTypeId: string;
   calibre: string;
   form: string;
+  sizes: string[];
   pricingMode: 'perGram' | 'alaPiece';
   weight?: number;
   pricePerGram?: number;

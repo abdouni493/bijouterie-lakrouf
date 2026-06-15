@@ -422,6 +422,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (woData?.length) setWebOffers(woData.map(r => ({
           id: String(r.id), name: r.name, image: r.image_url || r.image || null,
           silverTypeId: r.silver_type_id, calibre: r.calibre, form: r.form,
+          sizes: Array.isArray(r.sizes) ? r.sizes : [],
           pricingMode: r.pricing_mode, weight: r.weight, pricePerGram: r.price_per_gram,
           totalPrice: Number(r.total_price || 0), unitPrice: r.unit_price,
           showQuantity: Boolean(r.show_quantity), quantity: Number(r.quantity || 0),
@@ -433,6 +434,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (wsoData?.length) setWebSpecialOffers(wsoData.map(r => ({
           id: String(r.id), name: r.name, image: r.image_url || r.image || null,
           silverTypeId: r.silver_type_id, calibre: r.calibre, form: r.form,
+          sizes: Array.isArray(r.sizes) ? r.sizes : [],
           pricingMode: r.pricing_mode, weight: r.weight, pricePerGram: r.price_per_gram,
           unitPrice: r.unit_price, originalPrice: Number(r.original_price || 0),
           specialPrice: Number(r.special_price || 0),
@@ -1459,6 +1461,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { error } = await supabase.from('web_offers').insert({
       id, name: o.name, image_url: imageUrl,
       silver_type_id: o.silverTypeId, calibre: o.calibre, form: o.form,
+      sizes: o.sizes ?? [],
       pricing_mode: o.pricingMode, weight: o.weight, price_per_gram: o.pricePerGram,
       total_price: o.totalPrice, unit_price: o.unitPrice,
       show_quantity: o.showQuantity, quantity: o.quantity,
@@ -1476,6 +1479,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { error } = await supabase.from('web_offers').update({
       name: merged.name, image_url: imageUrl,
       silver_type_id: merged.silverTypeId, calibre: merged.calibre, form: merged.form,
+      sizes: merged.sizes ?? [],
       pricing_mode: merged.pricingMode, weight: merged.weight, price_per_gram: merged.pricePerGram,
       total_price: merged.totalPrice, unit_price: merged.unitPrice,
       show_quantity: merged.showQuantity, quantity: merged.quantity,
@@ -1499,6 +1503,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { error } = await supabase.from('web_special_offers').insert({
       id, name: o.name, image_url: imageUrl,
       silver_type_id: o.silverTypeId, calibre: o.calibre, form: o.form,
+      sizes: o.sizes ?? [],
       pricing_mode: o.pricingMode, weight: o.weight, price_per_gram: o.pricePerGram,
       unit_price: o.unitPrice, original_price: o.originalPrice, special_price: o.specialPrice,
       show_quantity: o.showQuantity, quantity: o.quantity,
@@ -1518,6 +1523,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { error } = await supabase.from('web_special_offers').update({
       name: merged.name, image_url: imageUrl,
       silver_type_id: merged.silverTypeId, calibre: merged.calibre, form: merged.form,
+      sizes: merged.sizes ?? [],
       pricing_mode: merged.pricingMode, weight: merged.weight, price_per_gram: merged.pricePerGram,
       unit_price: merged.unitPrice, original_price: merged.originalPrice, special_price: merged.specialPrice,
       show_quantity: merged.showQuantity, quantity: merged.quantity,

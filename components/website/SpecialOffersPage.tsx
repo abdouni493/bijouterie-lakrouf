@@ -156,10 +156,12 @@ const PromoCard: React.FC<{
   isAdded: boolean;
   onAddToCart: () => void;
   onViewDetails: () => void;
+  onOrderNow: () => void;
   delay: number;
   isDark: boolean;
   tc: ReturnType<typeof getThemeColors>;
-}> = ({ offer, lang, isAdded, onAddToCart, onViewDetails, delay, isDark, tc }) => {
+  silverTypeName?: string;
+}> = ({ offer, lang, isAdded, onAddToCart, onViewDetails, onOrderNow, delay, isDark, tc, silverTypeName }) => {
   const [hovered, setHovered] = useState(false);
   const shouldReduce = useReducedMotion();
   const revealActive = hovered && !shouldReduce;
@@ -232,22 +234,39 @@ const PromoCard: React.FC<{
             animate={{ opacity: revealActive ? 1 : 0, y: revealActive ? 0 : 14 }}
             transition={{ duration: 0.25, delay: revealActive ? 0.1 : 0 }}
             onClick={(e) => e.stopPropagation()}
+            style={{ display: 'flex', gap: '6px' }}
           >
             <motion.button
               onClick={(e) => { e.stopPropagation(); onAddToCart(); }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.97 }}
               style={{
-                width: '100%', padding: '10px',
+                flex: 1, padding: '10px 8px',
                 background: isAdded ? MESSIKA_PALETTE.success : MESSIKA_GRADIENTS.goldBtn,
                 border: 'none', color: '#0A0A0A',
                 fontSize: '11px', fontWeight: 700, fontFamily: MESSIKA_FONTS.body,
-                letterSpacing: '0.1em', textTransform: 'uppercase', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
               }}
             >
-              {isAdded ? <Check size={14} /> : <ShoppingCart size={14} />}
-              {isAdded ? (lang === 'fr' ? 'Ajouté' : 'تمت الإضافة') : (lang === 'fr' ? 'Ajouter au panier' : 'أضف للسلة')}
+              {isAdded ? <Check size={13} /> : <ShoppingCart size={13} />}
+              {isAdded ? (lang === 'fr' ? 'Ajouté' : 'تمت') : (lang === 'fr' ? 'Panier' : 'السلة')}
+            </motion.button>
+            <motion.button
+              onClick={(e) => { e.stopPropagation(); onOrderNow(); }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              style={{
+                flex: 1, padding: '10px 8px',
+                background: 'rgba(255,255,255,0.10)',
+                border: '1px solid rgba(255,255,255,0.30)',
+                color: '#fff',
+                fontSize: '11px', fontWeight: 700, fontFamily: MESSIKA_FONTS.body,
+                letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer',
+                backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+              }}
+            >
+              {lang === 'fr' ? 'Commander' : 'اطلب'}
             </motion.button>
           </motion.div>
         </motion.div>
@@ -259,9 +278,9 @@ const PromoCard: React.FC<{
           {offer.name}
         </h3>
 
-        {(offer.calibre || offer.form || (offer.showWeight && offer.weight)) && (
+        {(silverTypeName || offer.calibre || offer.form || (offer.showWeight && offer.weight)) && (
           <div style={{ fontFamily: MESSIKA_FONTS.body, fontSize: '11px', color: tc.textMuted, marginBottom: '14px', letterSpacing: '0.08em' }}>
-            {[offer.calibre, offer.form, offer.showWeight && offer.weight ? `${offer.weight}g` : null].filter(Boolean).join(' — ')}
+            {[silverTypeName, offer.calibre, offer.form, offer.showWeight && offer.weight ? `${offer.weight}g` : null].filter(Boolean).join(' — ')}
           </div>
         )}
 
@@ -284,6 +303,22 @@ const PromoCard: React.FC<{
           )}
         </div>
 
+        {/* Sizes */}
+        {offer.sizes && offer.sizes.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '14px' }}>
+            {offer.sizes.map((sz: string) => (
+              <span key={sz} style={{
+                fontSize: '10px', fontWeight: 700, fontFamily: MESSIKA_FONTS.body,
+                padding: '2px 8px', borderRadius: '4px',
+                background: 'rgba(201,168,76,0.10)', border: '1px solid rgba(201,168,76,0.30)',
+                color: MESSIKA_PALETTE.goldWarm, letterSpacing: '0.06em',
+              }}>
+                {sz}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Countdown */}
         {offer.endDate && (
           <div style={{ padding: '14px', background: tc.countdownBox, border: `1px solid ${tc.countdownBoxBorder}`, borderRadius: '4px' }}>
@@ -300,7 +335,7 @@ const PromoCard: React.FC<{
 // ============================================================
 
 const SpecialOffersPage: React.FC<SpecialOffersPageProps> = ({ lang, cart, setCart, setCurrentPage, theme = 'dark' }) => {
-  const { webSpecialOffers } = useApp();
+  const { webSpecialOffers, silverTypes } = useApp();
   const isDark = theme === 'dark';
   const tc = getThemeColors(isDark);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
@@ -383,9 +418,11 @@ const SpecialOffersPage: React.FC<SpecialOffersPageProps> = ({ lang, cart, setCa
                 isAdded={addedIds.has(offer.id)}
                 onAddToCart={() => addToCart(offer)}
                 onViewDetails={() => openModal(offer)}
+                onOrderNow={() => { setCart([{ offer, quantity: 1, isSpecial: true }]); setCurrentPage('order'); }}
                 delay={i * 0.08}
                 isDark={isDark}
                 tc={tc}
+                silverTypeName={silverTypes.find(s => s.id === offer.silverTypeId)?.name}
               />
             ))}
           </div>

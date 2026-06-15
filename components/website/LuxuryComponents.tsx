@@ -106,10 +106,12 @@ interface ProductCardProps {
   isNew?: boolean;
   onAddToCart?: () => void;
   onViewDetails?: () => void;
+  onOrderNow?: () => void;
   isAdded?: boolean;
   delay?: number;
   lang?: 'fr' | 'ar';
   theme?: 'light' | 'dark';
+  sizes?: string[];
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -121,10 +123,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   isNew,
   onAddToCart,
   onViewDetails,
+  onOrderNow,
   isAdded,
   delay = 0,
   lang = 'fr',
   theme = 'dark',
+  sizes,
 }) => {
   const [hovered, setHovered] = useState(false);
   const shouldReduce = useReducedMotion();
@@ -229,54 +233,56 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           <motion.div
             animate={{ opacity: revealActive ? 1 : 0, y: revealActive ? 0 : 16 }}
             transition={{ duration: 0.3, delay: revealActive ? 0.1 : 0 }}
-            style={{ display: 'flex', gap: '8px' }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <motion.button
-              onClick={(e) => { e.stopPropagation(); onViewDetails?.(); }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              style={{
-                flex: 1,
-                padding: '10px 8px',
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.18)',
-                color: '#fff',
-                fontSize: '11px',
-                fontWeight: 600,
-                fontFamily: MESSIKA_FONTS.body,
-                letterSpacing: '0.1em',
-                cursor: 'pointer',
-                textTransform: 'uppercase',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-              }}
-            >
-              {lang === 'fr' ? 'Voir détails' : 'التفاصيل'}
-            </motion.button>
-            <motion.button
-              onClick={(e) => { e.stopPropagation(); onAddToCart?.(); }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              style={{
-                flex: 1,
-                padding: '10px 8px',
-                background: isAdded
-                  ? MESSIKA_PALETTE.success
-                  : MESSIKA_GRADIENTS.goldBtn,
-                border: 'none',
-                color: '#0A0A0A',
-                fontSize: '11px',
-                fontWeight: 700,
-                fontFamily: MESSIKA_FONTS.body,
-                letterSpacing: '0.1em',
-                cursor: 'pointer',
-                textTransform: 'uppercase',
-                transition: 'background 0.3s ease',
-              }}
-            >
-              {isAdded ? '✓ Ajouté' : (lang === 'fr' ? '+ Panier' : '+ السلة')}
-            </motion.button>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <motion.button
+                onClick={(e) => { e.stopPropagation(); onAddToCart?.(); }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                style={{
+                  flex: 1,
+                  padding: '10px 8px',
+                  background: isAdded ? MESSIKA_PALETTE.success : MESSIKA_GRADIENTS.goldBtn,
+                  border: 'none',
+                  color: '#0A0A0A',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  fontFamily: MESSIKA_FONTS.body,
+                  letterSpacing: '0.1em',
+                  cursor: 'pointer',
+                  textTransform: 'uppercase',
+                  transition: 'background 0.3s ease',
+                }}
+              >
+                {isAdded ? '✓' : (lang === 'fr' ? '+ Panier' : '+ السلة')}
+              </motion.button>
+              {onOrderNow && (
+                <motion.button
+                  onClick={(e) => { e.stopPropagation(); onOrderNow(); }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  style={{
+                    flex: 1,
+                    padding: '10px 8px',
+                    background: 'rgba(255,255,255,0.10)',
+                    border: '1px solid rgba(255,255,255,0.30)',
+                    color: '#fff',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    fontFamily: MESSIKA_FONTS.body,
+                    letterSpacing: '0.08em',
+                    cursor: 'pointer',
+                    textTransform: 'uppercase',
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
+                  }}
+                >
+                  {lang === 'fr' ? 'Commander' : 'اطلب'}
+                </motion.button>
+              )}
+            </div>
           </motion.div>
         </motion.div>
       </div>
@@ -329,6 +335,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             }}
           >
             {price}
+          </div>
+        )}
+        {sizes && sizes.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '10px' }}>
+            {sizes.map(sz => (
+              <span key={sz} style={{
+                fontSize: '10px', fontWeight: 700, fontFamily: MESSIKA_FONTS.body,
+                padding: '2px 8px', borderRadius: '4px',
+                background: 'rgba(201,168,76,0.10)', border: '1px solid rgba(201,168,76,0.30)',
+                color: MESSIKA_PALETTE.goldWarm, letterSpacing: '0.06em',
+              }}>
+                {sz}
+              </span>
+            ))}
           </div>
         )}
       </motion.div>
