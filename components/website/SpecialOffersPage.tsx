@@ -303,22 +303,6 @@ const PromoCard: React.FC<{
           )}
         </div>
 
-        {/* Sizes */}
-        {offer.sizes && offer.sizes.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '14px' }}>
-            {offer.sizes.map((sz: string) => (
-              <span key={sz} style={{
-                fontSize: '10px', fontWeight: 700, fontFamily: MESSIKA_FONTS.body,
-                padding: '2px 8px', borderRadius: '4px',
-                background: 'rgba(201,168,76,0.10)', border: '1px solid rgba(201,168,76,0.30)',
-                color: MESSIKA_PALETTE.goldWarm, letterSpacing: '0.06em',
-              }}>
-                {sz}
-              </span>
-            ))}
-          </div>
-        )}
-
         {/* Countdown */}
         {offer.endDate && (
           <div style={{ padding: '14px', background: tc.countdownBox, border: `1px solid ${tc.countdownBoxBorder}`, borderRadius: '4px' }}>

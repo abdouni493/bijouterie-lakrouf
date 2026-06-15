@@ -102,8 +102,11 @@ const WebsiteOrders: React.FC = () => {
       {o.items.length > 0 && (
         <div style={{ borderTop: '1px solid var(--border)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
           {o.items.map((item, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--silver-300)' }}>
-              <span>{item.name} × {item.quantity}</span>
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--silver-300)', gap: 8 }}>
+              <span>
+                {item.name} × {item.quantity}
+                {item.size && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.30)', color: 'var(--gold)' }}>{item.size}</span>}
+              </span>
               <span>{item.totalPrice.toLocaleString()} DA</span>
             </div>
           ))}

@@ -32,7 +32,6 @@ const OffersPage: React.FC<OffersPageProps> = ({ lang, cart, setCart, setCurrent
   const [sort, setSort] = useState<SortKey>('default');
   const [cols, setCols] = useState<2 | 3>(3);
   const [selectedForm, setSelectedForm] = useState<string | null>(null);
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
   const [selectedOffer, setSelectedOffer] = useState<any>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -69,19 +68,13 @@ const OffersPage: React.FC<OffersPageProps> = ({ lang, cart, setCart, setCurrent
     [webOffers]
   );
 
-  const availableSizes = useMemo(() =>
-    [...new Set(webOffers.filter(o => !o.isHidden).flatMap(o => o.sizes ?? []))],
-    [webOffers]
-  );
-
   const filtered = useMemo(() => {
     let list = webOffers.filter(o => !o.isHidden && o.name.toLowerCase().includes(search.toLowerCase()));
     if (selectedForm) list = list.filter(o => o.form === selectedForm);
-    if (selectedSize) list = list.filter(o => (o.sizes ?? []).includes(selectedSize));
     if (sort === 'price_asc') list = [...list].sort((a, b) => (a.unitPrice ?? Infinity) - (b.unitPrice ?? Infinity));
     if (sort === 'price_desc') list = [...list].sort((a, b) => (b.unitPrice ?? -Infinity) - (a.unitPrice ?? -Infinity));
     return list;
-  }, [webOffers, search, sort, selectedForm, selectedSize]);
+  }, [webOffers, search, sort, selectedForm]);
 
   const addToCart = useCallback((offer: any) => {
     const existing = cart.find((ci: any) => ci.offer.id === offer.id);
@@ -338,49 +331,6 @@ const OffersPage: React.FC<OffersPageProps> = ({ lang, cart, setCart, setCurrent
             </div>
           )}
 
-          {/* Size filter chips */}
-          {availableSizes.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }} className="hide-scrollbar">
-              <span style={{ fontFamily: MESSIKA_FONTS.body, fontSize: '10px', fontWeight: 700, color: tc.textMuted, textTransform: 'uppercase', letterSpacing: '0.12em', flexShrink: 0 }}>
-                {lang === 'fr' ? 'Taille' : 'الحجم'}:
-              </span>
-              <motion.button
-                onClick={() => setSelectedSize(null)}
-                whileHover={shouldReduce ? {} : { scale: 1.03 }}
-                whileTap={shouldReduce ? {} : { scale: 0.97 }}
-                style={{
-                  padding: '4px 12px',
-                  fontFamily: MESSIKA_FONTS.body, fontSize: '11px', fontWeight: 600,
-                  letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap',
-                  background: selectedSize === null ? tc.sortActiveBg : 'transparent',
-                  border: `1px solid ${selectedSize === null ? tc.sortActiveBorder : tc.sortInactiveBorder}`,
-                  color: selectedSize === null ? tc.goldAccent : tc.textMuted,
-                  cursor: 'pointer', transition: 'all 0.2s ease', flexShrink: 0,
-                }}
-              >
-                {lang === 'fr' ? 'Toutes' : 'الكل'}
-              </motion.button>
-              {availableSizes.map(sz => (
-                <motion.button
-                  key={sz}
-                  onClick={() => setSelectedSize(selectedSize === sz ? null : sz)}
-                  whileHover={shouldReduce ? {} : { scale: 1.03 }}
-                  whileTap={shouldReduce ? {} : { scale: 0.97 }}
-                  style={{
-                    padding: '4px 12px',
-                    fontFamily: MESSIKA_FONTS.body, fontSize: '11px', fontWeight: 700,
-                    letterSpacing: '0.08em', whiteSpace: 'nowrap',
-                    background: selectedSize === sz ? tc.sortActiveBg : 'transparent',
-                    border: `1px solid ${selectedSize === sz ? tc.sortActiveBorder : tc.sortInactiveBorder}`,
-                    color: selectedSize === sz ? tc.goldAccent : tc.textMuted,
-                    cursor: 'pointer', transition: 'all 0.2s ease', flexShrink: 0,
-                  }}
-                >
-                  {sz}
-                </motion.button>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
@@ -444,7 +394,6 @@ const OffersPage: React.FC<OffersPageProps> = ({ lang, cart, setCart, setCurrent
                     onViewDetails={() => openModal(offer)}
                     onOrderNow={() => { setCart([{ offer, quantity: 1 }]); setCurrentPage('order'); }}
                     isAdded={addedIds.has(offer.id)}
-                    sizes={offer.sizes?.length ? offer.sizes : undefined}
                     delay={0}
                     lang={lang}
                     theme={theme}

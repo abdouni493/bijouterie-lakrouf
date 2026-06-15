@@ -160,7 +160,6 @@ const ImageUpload: React.FC<{ image: string | null; onChange: (b64: string | nul
 const OFFER_EMPTY = {
   name: '', image: null as string | null,
   silverTypeId: '', calibre: '', form: '',
-  sizes: [] as string[],
   pricingMode: 'perGram' as 'perGram' | 'alaPiece',
   weight: 0, pricePerGram: 0, totalPrice: 0, unitPrice: 0,
   showQuantity: false, quantity: 0, showWeight: false, isHidden: false,
@@ -179,14 +178,12 @@ const OfferModal: React.FC<OfferModalProps> = ({ open, onClose, editing, onSave,
   const [f, setF] = useState({ ...OFFER_EMPTY });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [calcMode, setCalcMode] = useState<'pgToTotal' | 'totalToPg'>('pgToTotal');
-  const [sizeInput, setSizeInput] = useState('');
 
   useEffect(() => {
     if (editing) {
       setF({
         name: editing.name, image: editing.image,
         silverTypeId: editing.silverTypeId, calibre: editing.calibre, form: editing.form,
-        sizes: editing.sizes ?? [],
         pricingMode: editing.pricingMode,
         weight: editing.weight ?? 0, pricePerGram: editing.pricePerGram ?? 0,
         totalPrice: editing.totalPrice, unitPrice: editing.unitPrice ?? 0,
@@ -197,7 +194,6 @@ const OfferModal: React.FC<OfferModalProps> = ({ open, onClose, editing, onSave,
       setF({ ...OFFER_EMPTY });
     }
     setCalcMode('pgToTotal');
-    setSizeInput('');
     setErrors({});
   }, [editing, open]);
 
@@ -307,59 +303,6 @@ const OfferModal: React.FC<OfferModalProps> = ({ open, onClose, editing, onSave,
                       <option value="">-- Choisir une forme --</option>
                       {shapes.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
-                  </div>
-
-                  {/* Tailles */}
-                  <div>
-                    <label className="lux-label">Tailles disponibles</label>
-                    <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                      <input
-                        value={sizeInput}
-                        onChange={e => setSizeInput(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' && sizeInput.trim()) {
-                            e.preventDefault();
-                            const v = sizeInput.trim();
-                            if (!f.sizes.includes(v)) setF(prev => ({ ...prev, sizes: [...prev.sizes, v] }));
-                            setSizeInput('');
-                          }
-                        }}
-                        className="lux-input"
-                        placeholder="Ex: S, M, L, 18, 19…"
-                        style={{ flex: 1 }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const v = sizeInput.trim();
-                          if (v && !f.sizes.includes(v)) setF(prev => ({ ...prev, sizes: [...prev.sizes, v] }));
-                          setSizeInput('');
-                        }}
-                        className="btn-gold"
-                        style={{ padding: '0 16px', borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                      >
-                        + Ajouter
-                      </button>
-                    </div>
-                    {f.sizes.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
-                        {f.sizes.map(sz => (
-                          <span key={sz} style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 5,
-                            fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 8,
-                            background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.35)',
-                            color: 'var(--gold)',
-                          }}>
-                            {sz}
-                            <button
-                              type="button"
-                              onClick={() => setF(prev => ({ ...prev, sizes: prev.sizes.filter(s => s !== sz) }))}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--silver-300)', padding: 0, lineHeight: 1, fontSize: 13 }}
-                            >×</button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
 
                   {/* Pricing mode */}
@@ -555,7 +498,6 @@ const OfferModal: React.FC<OfferModalProps> = ({ open, onClose, editing, onSave,
 const SOFFER_EMPTY = {
   name: '', image: null as string | null,
   silverTypeId: '', calibre: '', form: '',
-  sizes: [] as string[],
   pricingMode: 'perGram' as 'perGram' | 'alaPiece',
   weight: 0, pricePerGram: 0, originalPrice: 0, specialPrice: 0, unitPrice: 0,
   showQuantity: false, quantity: 0, showWeight: false, isHidden: false, isActive: true,
@@ -575,14 +517,12 @@ const SpecialOfferModal: React.FC<SpecialOfferModalProps> = ({ open, onClose, ed
   const [f, setF] = useState({ ...SOFFER_EMPTY });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [calcMode, setCalcMode] = useState<'pgToTotal' | 'totalToPg'>('pgToTotal');
-  const [sizeInput, setSizeInput] = useState('');
 
   useEffect(() => {
     if (editing) {
       setF({
         name: editing.name, image: editing.image,
         silverTypeId: editing.silverTypeId, calibre: editing.calibre, form: editing.form,
-        sizes: editing.sizes ?? [],
         pricingMode: editing.pricingMode,
         weight: editing.weight ?? 0, pricePerGram: editing.pricePerGram ?? 0,
         originalPrice: editing.originalPrice, specialPrice: editing.specialPrice,
@@ -596,7 +536,6 @@ const SpecialOfferModal: React.FC<SpecialOfferModalProps> = ({ open, onClose, ed
       setF({ ...SOFFER_EMPTY });
     }
     setCalcMode('pgToTotal');
-    setSizeInput('');
     setErrors({});
   }, [editing, open]);
 
@@ -703,58 +642,6 @@ const SpecialOfferModal: React.FC<SpecialOfferModalProps> = ({ open, onClose, ed
                       <option value="">-- Choisir une forme --</option>
                       {shapes.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
-                  </div>
-                  {/* Tailles */}
-                  <div>
-                    <label className="lux-label">Tailles disponibles</label>
-                    <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                      <input
-                        value={sizeInput}
-                        onChange={e => setSizeInput(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' && sizeInput.trim()) {
-                            e.preventDefault();
-                            const v = sizeInput.trim();
-                            if (!f.sizes.includes(v)) setF(prev => ({ ...prev, sizes: [...prev.sizes, v] }));
-                            setSizeInput('');
-                          }
-                        }}
-                        className="lux-input"
-                        placeholder="Ex: S, M, L, 18, 19…"
-                        style={{ flex: 1 }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const v = sizeInput.trim();
-                          if (v && !f.sizes.includes(v)) setF(prev => ({ ...prev, sizes: [...prev.sizes, v] }));
-                          setSizeInput('');
-                        }}
-                        className="btn-gold"
-                        style={{ padding: '0 16px', borderRadius: 12, fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                      >
-                        + Ajouter
-                      </button>
-                    </div>
-                    {f.sizes.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
-                        {f.sizes.map(sz => (
-                          <span key={sz} style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 5,
-                            fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 8,
-                            background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.35)',
-                            color: 'var(--gold)',
-                          }}>
-                            {sz}
-                            <button
-                              type="button"
-                              onClick={() => setF(prev => ({ ...prev, sizes: prev.sizes.filter(s => s !== sz) }))}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--silver-300)', padding: 0, lineHeight: 1, fontSize: 13 }}
-                            >×</button>
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
                   {/* Pricing mode */}
                   <div>

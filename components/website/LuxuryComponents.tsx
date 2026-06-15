@@ -111,7 +111,6 @@ interface ProductCardProps {
   delay?: number;
   lang?: 'fr' | 'ar';
   theme?: 'light' | 'dark';
-  sizes?: string[];
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -128,7 +127,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   delay = 0,
   lang = 'fr',
   theme = 'dark',
-  sizes,
 }) => {
   const [hovered, setHovered] = useState(false);
   const shouldReduce = useReducedMotion();
@@ -335,20 +333,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             }}
           >
             {price}
-          </div>
-        )}
-        {sizes && sizes.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '10px' }}>
-            {sizes.map(sz => (
-              <span key={sz} style={{
-                fontSize: '10px', fontWeight: 700, fontFamily: MESSIKA_FONTS.body,
-                padding: '2px 8px', borderRadius: '4px',
-                background: 'rgba(201,168,76,0.10)', border: '1px solid rgba(201,168,76,0.30)',
-                color: MESSIKA_PALETTE.goldWarm, letterSpacing: '0.06em',
-              }}>
-                {sz}
-              </span>
-            ))}
           </div>
         )}
       </motion.div>

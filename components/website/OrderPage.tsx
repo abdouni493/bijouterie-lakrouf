@@ -14,6 +14,7 @@ interface CartItem {
   offer: any;
   quantity: number;
   isSpecial?: boolean;
+  size?: string;
 }
 
 interface OrderPageProps {
@@ -119,6 +120,7 @@ const OrderPage: React.FC<OrderPageProps> = ({ lang, cart, setCart, setCurrentPa
       name: item.offer.name, image: item.offer.image,
       quantity: item.quantity, unitPrice: getUnitPrice(item), totalPrice: getItemPrice(item),
       silverTypeId: item.offer.silverTypeId, calibre: item.offer.calibre, form: item.offer.form, weight: item.offer.weight,
+      size: item.size || undefined,
     }));
     const newId = await addWebOrder({
       clientFullName: form.clientFullName, clientPhone: form.clientPhone, clientEmail: form.clientEmail,
@@ -319,6 +321,22 @@ const OrderPage: React.FC<OrderPageProps> = ({ lang, cart, setCart, setCurrentPa
                             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '7px 12px', display: 'flex', alignItems: 'center', color: gold, transition: 'background 0.15s' }}
                           ><Plus size={14} /></motion.button>
                         </div>
+
+                        {/* Optional size */}
+                        <input
+                          type="text"
+                          value={item.size || ''}
+                          onChange={e => setCart(cart.map((ci, idx) => idx === i ? { ...ci, size: e.target.value } : ci))}
+                          placeholder={lang === 'fr' ? 'Taille (optionnel)' : 'الحجم (اختياري)'}
+                          style={{
+                            display: 'block', marginTop: '10px', width: '100%',
+                            padding: '8px 12px', borderRadius: '8px', fontSize: '13px',
+                            fontFamily: MESSIKA_FONTS.body,
+                            background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                            border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'}`,
+                            color: tc.textPrimary, outline: 'none', boxSizing: 'border-box',
+                          }}
+                        />
                       </div>
 
                       {/* Price + delete */}
