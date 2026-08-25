@@ -420,3 +420,35 @@ export interface WebOrder {
   storageDeducted?: boolean;
   cancelledAt?: string;
 }
+
+// ─── Debt Payment Ledger ────────────────────────────────────────────────────
+// Every payment made against an outstanding debt (supplier invoices or client
+// credit) is recorded here so the Fournisseurs / Clients screens can show a
+// full, editable, printable history instead of just a running balance.
+export type DebtPartyType = 'supplier' | 'client';
+export type DebtPaymentMethod = 'cash' | 'silver' | 'gold' | 'other';
+
+export interface DebtPaymentAllocation {
+  invoiceId: string;
+  amount: number;
+}
+
+export interface DebtPayment {
+  id: string;
+  partyType: DebtPartyType;
+  partyId: string;
+  partyName: string;
+  amount: number;
+  date: string;
+  method: DebtPaymentMethod;
+  // Silver / gold settlement details
+  silverTypeId?: string;
+  silverTypeName?: string;
+  pricePerGram?: number;
+  weight?: number;
+  // Which purchase invoice(s) this payment was applied to
+  invoiceId?: string;
+  allocations?: DebtPaymentAllocation[];
+  note?: string;
+  createdAt: string;
+}

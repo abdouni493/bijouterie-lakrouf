@@ -1,13 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Plus, Search, MapPin, Phone, Edit, Trash2, History, ShoppingCart, X } from 'lucide-react';
+import { Plus, Search, MapPin, Phone, Edit, Trash2, History, ShoppingCart, X, Receipt } from 'lucide-react';
 import { useApp } from '../AppContext';
 import { translations } from '../translations';
 import { Supplier } from '../types';
+import DebtPaymentsHistory, { DebtHistoryRow } from './DebtPaymentsHistory';
 
 const Suppliers: React.FC = () => {
-  const { suppliers, addSupplier, updateSupplier, deleteSupplier, purchases, language } = useApp();
+  const {
+    suppliers, addSupplier, updateSupplier, deleteSupplier, purchases, language,
+    debtPayments, updateDebtPayment, deleteDebtPayment, settings,
+  } = useApp();
   const t = translations[language];
   const shouldReduce = useReducedMotion();
   const [searchTerm, setSearchTerm] = useState('');
@@ -15,8 +19,67 @@ const Suppliers: React.FC = () => {
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [selectedHistory, setSelectedHistory] = useState<string | null>(null);
   const [historyFilter, setHistoryFilter] = useState<'all' | 'purchases' | 'debts'>('all');
+  const [paymentsSupplierId, setPaymentsSupplierId] = useState<string | null>(null);
 
-  const filtered = suppliers.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Search by name, phone or address — a single box covers every field on the card.
+  const filtered = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return suppliers;
+    return suppliers.filter(s =>
+      `${s.name} ${s.phone || ''} ${s.address || ''}`.toLowerCase().includes(q)
+    );
+  }, [suppliers, searchTerm]);
+
+  // Per-supplier purchase totals and outstanding debt.
+  const statsBySupplier = useMemo(() => {
+    const map: Record<string, { invoices: number; total: number; paid: number; debt: number }> = {};
+    purchases.forEach(p => {
+      const invoiceTotal = p.items.reduce((a, b) => a + (b.totalPrice || 0), 0);
+      const paid = (p.amountPaid !== undefined && p.amountPaid !== null) ? p.amountPaid : (p.payment?.total || 0);
+      const entry = map[p.supplierId] || (map[p.supplierId] = { invoices: 0, total: 0, paid: 0, debt: 0 });
+      entry.invoices += 1;
+      entry.total += invoiceTotal;
+      entry.paid += paid;
+      entry.debt += Math.max(0, invoiceTotal - paid);
+    });
+    return map;
+  }, [purchases]);
+
+  const paymentsSupplier = suppliers.find(s => s.id === paymentsSupplierId) || null;
+
+  const supplierPaymentRows: DebtHistoryRow[] = useMemo(() => {
+    if (!paymentsSupplierId) return [];
+    const invoiceLabel = (invoiceId: string) => {
+      const inv = purchases.find(pp => pp.id === invoiceId);
+      return inv ? `facture du ${new Date(inv.date).toLocaleDateString('fr-FR')}` : `facture ${invoiceId}`;
+    };
+    return (debtPayments || [])
+      .filter(d => d.partyType === 'supplier' && d.partyId === paymentsSupplierId)
+      .map(d => {
+        const allocs = d.allocations || [];
+        const meta: { label: string; value: string }[] = [];
+        if (d.weight) meta.push({ label: 'Poids', value: `${d.weight.toFixed(2)}g` });
+        if (d.pricePerGram) meta.push({ label: 'Prix/g', value: `${d.pricePerGram.toLocaleString()} DZD` });
+        allocs.forEach(a => meta.push({ label: invoiceLabel(a.invoiceId), value: `${a.amount.toLocaleString()} DZD` }));
+
+        const target = allocs.length === 0
+          ? 'Règlement fournisseur'
+          : allocs.length === 1
+            ? `Appliqué à la ${invoiceLabel(allocs[0].invoiceId)}`
+            : `Réparti sur ${allocs.length} factures`;
+
+        return {
+          id: d.id,
+          date: d.date,
+          amount: d.amount,
+          methodKey: d.method,
+          methodLabel: d.method === 'cash' ? 'Caisse' : d.method === 'silver' ? 'Argent' : d.method === 'gold' ? 'Or' : 'Autre',
+          details: d.silverTypeName ? `${target} — réglé en ${d.silverTypeName}` : target,
+          note: d.note,
+          meta,
+        };
+      });
+  }, [debtPayments, paymentsSupplierId, purchases]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -57,15 +120,24 @@ const Suppliers: React.FC = () => {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           {/* Search */}
-          <div className="lux-search">
+          <div className="lux-search" style={{ minWidth: 260 }}>
             <Search size={16} style={{ color: 'var(--silver-400)', flexShrink: 0 }} />
             <input
               type="text"
-              placeholder={t.supplierName}
+              placeholder={language === 'ar' ? 'ابحث بالاسم أو الهاتف' : 'Rechercher par nom, téléphone…'}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{ background: 'none', border: 'none', outline: 'none', color: 'var(--silver-100)', fontWeight: 600, fontSize: 14, flex: 1, minWidth: 0 }}
             />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--silver-400)', display: 'flex', padding: 0 }}
+                title={language === 'ar' ? 'مسح' : 'Effacer'}
+              >
+                <X size={15} />
+              </button>
+            )}
           </div>
           <button
             onClick={() => setShowAddModal(true)}
@@ -77,6 +149,23 @@ const Suppliers: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {searchTerm && (
+        <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--silver-400)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '-20px 0 0' }}>
+          {filtered.length} {language === 'ar' ? 'نتيجة' : 'résultat(s)'} — “{searchTerm}”
+        </p>
+      )}
+
+      {filtered.length === 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '64px 0' }}>
+          <Search size={44} style={{ color: 'var(--silver-400)', opacity: 0.35 }} />
+          <p style={{ fontWeight: 800, color: 'var(--silver-400)', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: 12, margin: 0 }}>
+            {searchTerm
+              ? (language === 'ar' ? 'لا يوجد مورد مطابق' : 'Aucun fournisseur ne correspond')
+              : (language === 'ar' ? 'لا يوجد موردون' : 'Aucun fournisseur enregistré')}
+          </p>
+        </div>
+      )}
 
       {/* Suppliers grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 24 }}>
@@ -132,22 +221,61 @@ const Suppliers: React.FC = () => {
               </div>
             </div>
 
-            <button
-              onClick={() => setSelectedHistory(s.id)}
-              style={{
-                width: '100%', marginTop: 20, padding: '12px 0',
-                border: '1px solid var(--border)', background: 'rgba(255,255,255,0.03)',
-                color: 'var(--silver-200)', fontWeight: 800, borderRadius: 12,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--gold)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--gold)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--silver-200)'; }}
-            >
-              <History size={14} />
-              {t.history}
-            </button>
+            {/* Purchase / debt snapshot */}
+            {(() => {
+              const st = statsBySupplier[s.id] || { invoices: 0, total: 0, paid: 0, debt: 0 };
+              const paidCount = (debtPayments || []).filter(d => d.partyType === 'supplier' && d.partyId === s.id).length;
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 18 }}>
+                  <div style={{ padding: '10px 8px', borderRadius: 12, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
+                    <p style={{ fontSize: 8, fontWeight: 800, color: 'var(--silver-400)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>Achats</p>
+                    <p style={{ fontSize: 13, fontWeight: 900, color: 'var(--silver-100)', margin: '4px 0 0' }}>{st.total.toLocaleString()} <span style={{ fontSize: 8, opacity: 0.6 }}>DZD</span></p>
+                  </div>
+                  <div style={{ padding: '10px 8px', borderRadius: 12, background: 'rgba(201,168,76,0.08)', border: '1px solid rgba(201,168,76,0.2)' }}>
+                    <p style={{ fontSize: 8, fontWeight: 800, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>Paiements</p>
+                    <p style={{ fontSize: 13, fontWeight: 900, color: 'var(--gold)', margin: '4px 0 0' }}>{paidCount}</p>
+                  </div>
+                  <div style={{ padding: '10px 8px', borderRadius: 12, background: st.debt > 0 ? 'rgba(220,38,38,0.08)' : 'rgba(34,211,165,0.08)', border: `1px solid ${st.debt > 0 ? 'rgba(220,38,38,0.2)' : 'rgba(34,211,165,0.2)'}` }}>
+                    <p style={{ fontSize: 8, fontWeight: 800, color: st.debt > 0 ? 'var(--danger)' : 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>Dette</p>
+                    <p style={{ fontSize: 13, fontWeight: 900, color: st.debt > 0 ? 'var(--danger)' : 'var(--teal)', margin: '4px 0 0' }}>{st.debt.toLocaleString()} <span style={{ fontSize: 8, opacity: 0.6 }}>DZD</span></p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
+              <button
+                onClick={() => setSelectedHistory(s.id)}
+                style={{
+                  padding: '12px 6px',
+                  border: '1px solid var(--border)', background: 'rgba(255,255,255,0.03)',
+                  color: 'var(--silver-200)', fontWeight: 800, borderRadius: 12,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--gold)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--gold)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--silver-200)'; }}
+              >
+                <History size={13} />
+                {language === 'ar' ? 'المشتريات' : 'Achats'}
+              </button>
+              <button
+                onClick={() => setPaymentsSupplierId(s.id)}
+                style={{
+                  padding: '12px 6px',
+                  border: '1px solid rgba(201,168,76,0.25)', background: 'rgba(201,168,76,0.08)',
+                  color: 'var(--gold)', fontWeight: 800, borderRadius: 12,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                title={language === 'ar' ? 'سجل تسديد الديون' : 'Historique des paiements de dettes'}
+              >
+                <Receipt size={13} />
+                {language === 'ar' ? 'التسديدات' : 'Paiements'}
+              </button>
+            </div>
           </motion.div>
         ))}
       </div>
@@ -232,6 +360,34 @@ const Suppliers: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Debt payments history */}
+      {paymentsSupplier && (() => {
+        const st = statsBySupplier[paymentsSupplier.id] || { invoices: 0, total: 0, paid: 0, debt: 0 };
+        const totalPaidFromLedger = supplierPaymentRows.reduce((a, b) => a + b.amount, 0);
+        return (
+          <DebtPaymentsHistory
+            open
+            onClose={() => setPaymentsSupplierId(null)}
+            title={`Fournisseur — ${paymentsSupplier.name}`}
+            partyLabel="Fournisseur"
+            partyName={paymentsSupplier.name}
+            partyPhone={paymentsSupplier.phone}
+            partyAddress={paymentsSupplier.address}
+            summary={[
+              { label: language === 'ar' ? 'إجمالي المشتريات' : 'Total Achats', value: st.total, accent: 'var(--silver-100)' },
+              { label: language === 'ar' ? 'المسدد' : 'Total Réglé', value: totalPaidFromLedger, accent: 'var(--gold)' },
+              { label: language === 'ar' ? 'الدين المتبقي' : 'Dette Restante', value: st.debt, accent: st.debt > 0 ? 'var(--danger)' : 'var(--teal)' },
+            ]}
+            rows={supplierPaymentRows}
+            onSave={(id, patch) => updateDebtPayment(id, { amount: patch.amount, date: patch.date, note: patch.note })}
+            onDelete={(id) => deleteDebtPayment(id)}
+            language={language}
+            settings={settings}
+            emptyLabel={language === 'ar' ? 'لا يوجد تسديد مسجل لهذا المورد' : 'Aucun paiement de dette pour ce fournisseur'}
+          />
+        );
+      })()}
 
       {/* History Modal */}
       <AnimatePresence>

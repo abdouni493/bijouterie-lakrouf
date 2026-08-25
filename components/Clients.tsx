@@ -1,11 +1,19 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Plus, Edit2, Trash2, X, DollarSign, History, TrendingDown, User, Phone } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, DollarSign, History, TrendingDown, User, Phone, Search, Receipt, Check, Printer } from 'lucide-react';
 import { useApp } from '../AppContext';
 import { translations } from '../translations';
+import DebtPaymentsHistory, { DebtHistoryRow } from './DebtPaymentsHistory';
+import { printDebtHistory } from '../utils/printDebtHistory';
 
 const Clients: React.FC = () => {
-  const { clients, addClient, updateClient, deleteClient, addClientPayment, deleteClientPayment, addClientRecuperation, deleteClientRecuperation, language, theme } = useApp();
+  const {
+    clients, addClient, updateClient, deleteClient,
+    addClientPayment, updateClientPayment, deleteClientPayment,
+    addClientRecuperation, updateClientRecuperation, deleteClientRecuperation,
+    debtPayments, updateDebtPayment, deleteDebtPayment,
+    language, theme, settings,
+  } = useApp();
   const t = translations[language];
   const shouldReduce = useReducedMotion();
   const isDark = theme === 'dark';
@@ -27,6 +35,11 @@ const Clients: React.FC = () => {
   const [recuperationDate, setRecuperationDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   const [historyClientId, setHistoryClientId] = useState<string | null>(null);
+  const [paymentsClientId, setPaymentsClientId] = useState<string | null>(null);
+  const [editingTxId, setEditingTxId] = useState<string | null>(null);
+  const [editTxAmount, setEditTxAmount] = useState('');
+  const [editTxDate, setEditTxDate] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const closeShowModal = () => {
     setShowModal(false);
@@ -38,7 +51,22 @@ const Clients: React.FC = () => {
     setShowRecuperationModal(false);
   };
   const closeHistoryClientId = () => {
-    setHistoryClientId(null);
+    setHistoryClientId(null); cancelTxEdit();
+  };
+
+  const openTxEdit = (tx: any) => {
+    setEditingTxId(tx.id);
+    setEditTxAmount(String(tx.amount));
+    setEditTxDate(new Date(tx.date).toISOString().split('T')[0]);
+  };
+  const cancelTxEdit = () => { setEditingTxId(null); setEditTxAmount(''); setEditTxDate(''); };
+  const commitTxEdit = (clientId: string, tx: any) => {
+    const amount = Number(editTxAmount);
+    if (!amount || amount <= 0) { alert(language === 'ar' ? 'المبلغ غير صالح' : 'Montant invalide'); return; }
+    const patch = { amount, date: new Date(editTxDate).toISOString() };
+    if (tx.type === 'payment') updateClientPayment(clientId, tx.id, patch);
+    else updateClientRecuperation(clientId, tx.id, patch);
+    cancelTxEdit();
   };
 
   const openAdd = () => { setEditingId(null); setName(''); setPhone(''); setNote(''); setShowModal(true); };
@@ -74,6 +102,43 @@ const Clients: React.FC = () => {
   const clientRecuperated = (c: any) => (c.recuperations || []).reduce((s: number, r: any) => s + Number(r.amount || 0), 0);
   const clientBalance = (c: any) => clientTotal(c) - clientRecuperated(c);
 
+  // Search by name, phone or note — one box covering every field on the card.
+  const filteredClients = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return clients;
+    return clients.filter(c => `${c.name} ${c.phone || ''} ${c.note || ''}`.toLowerCase().includes(q));
+  }, [clients, searchTerm]);
+
+  const paymentsClient = clients.find(c => c.id === paymentsClientId) || null;
+
+  // A client's debt payments are their récupérations, plus anything recorded
+  // straight into the shared ledger for this client.
+  const clientPaymentRows: DebtHistoryRow[] = useMemo(() => {
+    if (!paymentsClient) return [];
+    const fromRecuperations: DebtHistoryRow[] = (paymentsClient.recuperations || []).map(r => ({
+      id: r.id,
+      date: r.date,
+      amount: Number(r.amount) || 0,
+      methodKey: 'cash',
+      methodLabel: language === 'ar' ? 'استرداد' : 'Récupération',
+      details: language === 'ar' ? 'مبلغ مسترد من العميل' : 'Montant récupéré auprès du client',
+    }));
+    const fromLedger: DebtHistoryRow[] = (debtPayments || [])
+      .filter(d => d.partyType === 'client' && d.partyId === paymentsClient.id)
+      .map(d => ({
+        id: d.id,
+        date: d.date,
+        amount: d.amount,
+        methodKey: d.method,
+        methodLabel: d.method === 'cash' ? 'Caisse' : d.method === 'silver' ? 'Argent' : d.method === 'gold' ? 'Or' : 'Autre',
+        details: d.silverTypeName ? `Réglé en ${d.silverTypeName}` : undefined,
+        note: d.note,
+      }));
+    return [...fromRecuperations, ...fromLedger];
+  }, [paymentsClient, debtPayments, language]);
+
+  const isLedgerRow = (id: string) => (debtPayments || []).some(d => d.id === id && d.partyType === 'client');
+
   return (
     <div className="space-y-8">
       {/* Page header */}
@@ -83,30 +148,60 @@ const Clients: React.FC = () => {
           <h1 className="section-title">{t.clients}</h1>
           <p className="section-subtitle">{language === 'ar' ? 'إدارة العملاء والقروض' : 'Gestion des clients et crédits'}</p>
         </div>
-        <motion.button
-          onClick={openAdd}
-          whileHover={shouldReduce ? {} : { scale: 1.03, y: -1 }}
-          whileTap={shouldReduce ? {} : { scale: 0.97 }}
-          className="btn-silver flex items-center gap-2 px-5 py-3 rounded-2xl text-sm"
-        >
-          <Plus size={18} />
-          {t.addClient}
-        </motion.button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div className="lux-search" style={{ minWidth: 260 }}>
+            <Search size={16} style={{ color: 'var(--silver-400)', flexShrink: 0 }} />
+            <input
+              type="text"
+              placeholder={language === 'ar' ? 'ابحث بالاسم أو الهاتف' : 'Rechercher par nom, téléphone…'}
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--silver-400)', display: 'flex', padding: 0 }}
+                title={language === 'ar' ? 'مسح' : 'Effacer'}
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
+          <motion.button
+            onClick={openAdd}
+            whileHover={shouldReduce ? {} : { scale: 1.03, y: -1 }}
+            whileTap={shouldReduce ? {} : { scale: 0.97 }}
+            className="btn-silver flex items-center gap-2 px-5 py-3 rounded-2xl text-sm"
+          >
+            <Plus size={18} />
+            {t.addClient}
+          </motion.button>
+        </div>
       </div>
 
-      {clients.length === 0 && (
+      {searchTerm && (
+        <p style={{ fontSize: 11, fontWeight: 800, color: isDark ? 'rgba(192,200,212,0.45)' : 'rgba(80,70,50,0.55)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>
+          {filteredClients.length} {language === 'ar' ? 'نتيجة' : 'résultat(s)'} — “{searchTerm}”
+        </p>
+      )}
+
+      {filteredClients.length === 0 && (
         <motion.div
           initial={shouldReduce ? false : { opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           style={{ textAlign: 'center', padding: '80px 0', color: isDark ? 'rgba(192,200,212,0.3)' : 'rgba(60,60,80,0.3)' }}
         >
-          <User size={48} style={{ margin: '0 auto 16px', opacity: 0.3 }} />
-          <p style={{ fontSize: 16 }}>{language === 'ar' ? 'لا يوجد عملاء بعد' : 'Aucun client pour le moment'}</p>
+          {searchTerm ? <Search size={48} style={{ margin: '0 auto 16px', opacity: 0.3 }} /> : <User size={48} style={{ margin: '0 auto 16px', opacity: 0.3 }} />}
+          <p style={{ fontSize: 16 }}>
+            {searchTerm
+              ? (language === 'ar' ? 'لا يوجد عميل مطابق' : 'Aucun client ne correspond')
+              : (language === 'ar' ? 'لا يوجد عملاء بعد' : 'Aucun client pour le moment')}
+          </p>
         </motion.div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {clients.map((c, idx) => {
+        {filteredClients.map((c, idx) => {
           const total = clientTotal(c);
           const recuperated = clientRecuperated(c);
           const balance = clientBalance(c);
@@ -195,15 +290,52 @@ const Clients: React.FC = () => {
                   onClick={() => setHistoryClientId(c.id)}
                   whileHover={shouldReduce ? {} : { scale: 1.02 }}
                   whileTap={shouldReduce ? {} : { scale: 0.97 }}
-                  style={{ gridColumn: '1 / -1', padding: '10px 8px', borderRadius: 12, border: '1px solid rgba(192,200,212,0.12)', background: 'rgba(192,200,212,0.05)', color: 'rgba(192,200,212,0.5)', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer', transition: 'all 0.2s' }}
+                  style={{ padding: '10px 8px', borderRadius: 12, border: '1px solid rgba(192,200,212,0.12)', background: 'rgba(192,200,212,0.05)', color: isDark ? 'rgba(192,200,212,0.6)' : 'rgba(80,70,50,0.6)', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer', transition: 'all 0.2s' }}
                 >
-                  <History size={13} /> {language === 'ar' ? 'السجل الكامل' : 'Historique Complet'}
+                  <History size={13} /> {language === 'ar' ? 'السجل' : 'Historique'}
+                </motion.button>
+                <motion.button
+                  onClick={() => setPaymentsClientId(c.id)}
+                  whileHover={shouldReduce ? {} : { scale: 1.02 }}
+                  whileTap={shouldReduce ? {} : { scale: 0.97 }}
+                  title={language === 'ar' ? 'سجل تسديد الديون' : 'Historique des paiements de dettes'}
+                  style={{ padding: '10px 8px', borderRadius: 12, border: '1px solid rgba(201,168,76,0.25)', background: 'rgba(201,168,76,0.08)', color: '#C9A84C', fontWeight: 700, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer', transition: 'all 0.2s' }}
+                >
+                  <Receipt size={13} /> {language === 'ar' ? 'التسديدات' : 'Paiements'}
                 </motion.button>
               </div>
             </motion.div>
           );
         })}
       </div>
+
+      {/* DEBT PAYMENTS HISTORY */}
+      {paymentsClient && (
+        <DebtPaymentsHistory
+          open
+          onClose={() => setPaymentsClientId(null)}
+          title={`Client — ${paymentsClient.name}`}
+          partyLabel="Client"
+          partyName={paymentsClient.name}
+          partyPhone={paymentsClient.phone}
+          partyAddress={paymentsClient.note}
+          summary={[
+            { label: language === 'ar' ? 'إجمالي الديون' : 'Crédit Total', value: clientTotal(paymentsClient), accent: '#8FA3B8' },
+            { label: language === 'ar' ? 'مسترد' : 'Total Récupéré', value: clientRecuperated(paymentsClient), accent: '#22D3A5' },
+            { label: language === 'ar' ? 'الرصيد' : 'Solde Restant', value: clientBalance(paymentsClient), accent: clientBalance(paymentsClient) > 0 ? '#C9A84C' : '#8FA3B8' },
+          ]}
+          rows={clientPaymentRows}
+          onSave={(id, patch) => isLedgerRow(id)
+            ? updateDebtPayment(id, { amount: patch.amount, date: patch.date, note: patch.note })
+            : updateClientRecuperation(paymentsClient.id, id, { amount: patch.amount, date: patch.date })}
+          onDelete={(id) => isLedgerRow(id)
+            ? deleteDebtPayment(id)
+            : deleteClientRecuperation(paymentsClient.id, id)}
+          language={language}
+          settings={settings}
+          emptyLabel={language === 'ar' ? 'لا يوجد تسديد مسجل لهذا العميل' : 'Aucun paiement de dette pour ce client'}
+        />
+      )}
 
       {/* ADD/EDIT CLIENT MODAL */}
       <AnimatePresence>
@@ -383,7 +515,34 @@ const Clients: React.FC = () => {
                     <h2 style={{ fontSize: 18, fontWeight: 800, color: isDark ? '#F0F4F8' : '#1a1a2e', margin: 0 }}>{c.name}</h2>
                     <p style={{ fontSize: 11, color: isDark ? 'rgba(192,200,212,0.4)' : 'rgba(80,70,50,0.5)', margin: 0 }}>{c.phone || (language === 'ar' ? 'بدون هاتف' : 'Pas de téléphone')}</p>
                   </div>
-                  <button onClick={closeHistoryClientId} className="btn-icon"><X size={16} /></button>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => printDebtHistory(settings, {
+                        title: `Client — ${c.name}`,
+                        partyLabel: 'Client',
+                        partyName: c.name,
+                        partyPhone: c.phone,
+                        partyAddress: c.note,
+                        summary: [
+                          { label: 'Crédit Total', value: total },
+                          { label: 'Récupéré', value: recuperated },
+                          { label: 'Solde', value: balance },
+                        ],
+                        payments: allTransactions.map(tx => ({
+                          id: tx.id,
+                          date: tx.date,
+                          amount: tx.amount,
+                          methodLabel: tx.type === 'payment' ? 'Crédit ajouté' : 'Argent récupéré',
+                        })),
+                        language,
+                      })}
+                      className="btn-icon"
+                      title={language === 'ar' ? 'طباعة' : 'Imprimer'}
+                    >
+                      <Printer size={16} />
+                    </button>
+                    <button onClick={closeHistoryClientId} className="btn-icon"><X size={16} /></button>
+                  </div>
                 </div>
                 <div className="modal-body space-y-5">
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
@@ -430,16 +589,36 @@ const Clients: React.FC = () => {
                             </p>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <p style={{ fontWeight: 900, color: tx.type === 'payment' ? '#8FA3B8' : '#22D3A5', fontSize: 15 }}>
-                              {tx.amount.toLocaleString()} <span style={{ fontSize: 9, opacity: 0.6 }}>DA</span>
-                            </p>
-                            <motion.button
-                              onClick={() => { if (confirm('Supprimer ?')) { tx.type === 'payment' ? deleteClientPayment(c.id, tx.id) : deleteClientRecuperation(c.id, tx.id); } }}
-                              whileHover={shouldReduce ? {} : { color: '#FF5F72' }}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: isDark ? 'rgba(192,200,212,0.25)' : 'rgba(80,70,50,0.25)', padding: 4 }}
-                            >
-                              <Trash2 size={14} />
-                            </motion.button>
+                            {editingTxId === tx.id ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <input type="number" value={editTxAmount} onChange={e => setEditTxAmount(e.target.value)} className="lux-input" style={{ width: 110, padding: '7px 9px', fontSize: 12 }} />
+                                <input type="date" value={editTxDate} onChange={e => setEditTxDate(e.target.value)} className="lux-input" style={{ width: 140, padding: '7px 9px', fontSize: 12 }} />
+                                <button onClick={() => commitTxEdit(c.id, tx)} className="btn-icon success" title={language === 'ar' ? 'حفظ' : 'Enregistrer'}><Check size={14} /></button>
+                                <button onClick={cancelTxEdit} className="btn-icon" title={language === 'ar' ? 'إلغاء' : 'Annuler'}><X size={14} /></button>
+                              </div>
+                            ) : (
+                              <>
+                                <p style={{ fontWeight: 900, color: tx.type === 'payment' ? '#8FA3B8' : '#22D3A5', fontSize: 15 }}>
+                                  {tx.amount.toLocaleString()} <span style={{ fontSize: 9, opacity: 0.6 }}>DA</span>
+                                </p>
+                                <motion.button
+                                  onClick={() => openTxEdit(tx)}
+                                  whileHover={shouldReduce ? {} : { color: '#C9A84C' }}
+                                  title={language === 'ar' ? 'تعديل' : 'Modifier'}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: isDark ? 'rgba(192,200,212,0.25)' : 'rgba(80,70,50,0.25)', padding: 4 }}
+                                >
+                                  <Edit2 size={14} />
+                                </motion.button>
+                                <motion.button
+                                  onClick={() => { if (confirm('Supprimer ?')) { tx.type === 'payment' ? deleteClientPayment(c.id, tx.id) : deleteClientRecuperation(c.id, tx.id); } }}
+                                  whileHover={shouldReduce ? {} : { color: '#FF5F72' }}
+                                  title={language === 'ar' ? 'حذف' : 'Supprimer'}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: isDark ? 'rgba(192,200,212,0.25)' : 'rgba(80,70,50,0.25)', padding: 4 }}
+                                >
+                                  <Trash2 size={14} />
+                                </motion.button>
+                              </>
+                            )}
                           </div>
                         </motion.div>
                       ))}

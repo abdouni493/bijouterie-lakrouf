@@ -94,3 +94,32 @@ ALTER TABLE IF EXISTS store_settings          DISABLE ROW LEVEL SECURITY;
 
 -- ── Done ──────────────────────────────────────────────────────
 -- After running this, reload the app. Sync errors should be gone.
+
+
+-- ============================================================
+-- DEBT PAYMENT LEDGER (added for the Fournisseurs / Clients
+-- payment-history screens). Run this once in the SQL Editor.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS debt_payments (
+  id                TEXT PRIMARY KEY,
+  party_type        TEXT NOT NULL,          -- 'supplier' | 'client'
+  party_id          TEXT NOT NULL,
+  party_name        TEXT,
+  amount            NUMERIC NOT NULL DEFAULT 0,
+  date              TEXT,
+  method            TEXT NOT NULL DEFAULT 'cash',  -- 'cash' | 'silver' | 'gold' | 'other'
+  silver_type_id    TEXT,
+  silver_type_name  TEXT,
+  price_per_gram    NUMERIC,
+  weight            NUMERIC,
+  invoice_id        TEXT,
+  allocations       JSONB DEFAULT '[]'::jsonb,     -- [{ invoiceId, amount }]
+  note              TEXT,
+  created_at        TEXT
+);
+
+CREATE INDEX IF NOT EXISTS debt_payments_party_idx ON debt_payments (party_type, party_id);
+CREATE INDEX IF NOT EXISTS debt_payments_date_idx  ON debt_payments (date);
+
+ALTER TABLE IF EXISTS debt_payments DISABLE ROW LEVEL SECURITY;

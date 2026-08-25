@@ -7,7 +7,7 @@ import { translations } from '../translations';
 import { SilverShape, PurchaseInvoice } from '../types';
 
 const Purchases: React.FC = () => {
-  const { suppliers, silverTypes, purchases, addPurchase, deletePurchase, updatePurchase, updateSilverType, language, shapes } = useApp();
+  const { suppliers, silverTypes, purchases, addPurchase, deletePurchase, updatePurchase, updateSilverType, addDebtPayment, language, shapes } = useApp();
   const t = translations[language];
   const shouldReduce = useReducedMotion();
 
@@ -847,6 +847,17 @@ const Purchases: React.FC = () => {
                     const newIsDebt = newRemaining > 0;
                     const newPayment = { ...selectedInvoice.payment, cash: (selectedInvoice.payment.cash || 0) + amt, total: (selectedInvoice.payment.total || 0) + amt };
                     updatePurchase(selectedInvoice.id, { payment: newPayment, amountPaid: newAmountPaid, remaining: newRemaining, isDebt: newIsDebt });
+                    await addDebtPayment({
+                      partyType: 'supplier',
+                      partyId: selectedInvoice.supplierId,
+                      partyName: suppliers.find(s => s.id === selectedInvoice.supplierId)?.name || '',
+                      amount: amt,
+                      date: new Date().toISOString(),
+                      method: 'cash',
+                      invoiceId: selectedInvoice.id,
+                      allocations: [{ invoiceId: selectedInvoice.id, amount: amt }],
+                      note: '',
+                    });
                     setSelectedInvoice({ ...selectedInvoice, payment: newPayment, amountPaid: newAmountPaid, remaining: newRemaining, isDebt: newIsDebt });
                     setPayDebtAmount(''); closeShowPayDebtBox(); setPayProcessing(false);
                   }}
@@ -1027,7 +1038,7 @@ const Purchases: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     const amount = parseFloat(debtPaymentAmount || '0');
                     if (!amount || amount <= 0) { alert('Veuillez entrer un montant valide'); return; }
                     if (debtPaymentType === 'silver' && (!selectedSilverForPayment || !silverPricePerGram)) { alert('Veuillez sélectionner un type d\'argent et entrer le prix par gramme'); return; }
@@ -1035,6 +1046,7 @@ const Purchases: React.FC = () => {
                     const supplierInvoices = purchases.filter(p => p.supplierId === selectedDebtSupplier);
                     let remainingPayment = amount;
                     let totalSilverToDeduct = 0;
+                    const allocations: { invoiceId: string; amount: number }[] = [];
                     supplierInvoices.forEach(invoice => {
                       const invoiceTotal = invoice.items.reduce((a, b) => a + (b.totalPrice || 0), 0);
                       const paid = (invoice.amountPaid !== undefined && invoice.amountPaid !== null) ? invoice.amountPaid : (invoice.payment?.total || 0);
@@ -1048,6 +1060,7 @@ const Purchases: React.FC = () => {
                         let newPayment = { ...invoice.payment };
                         if (debtPaymentType === 'cash') { newPayment.cash = (newPayment.cash || 0) + paymentForThisInvoice; newPayment.total = (newPayment.total || 0) + paymentForThisInvoice; }
                         updatePurchase(invoice.id, { payment: newPayment, amountPaid: newAmountPaid, remaining: newRemaining, isDebt: newIsDebt });
+                        allocations.push({ invoiceId: invoice.id, amount: paymentForThisInvoice });
                       }
                     });
                     if (debtPaymentType === 'silver') {
@@ -1056,6 +1069,21 @@ const Purchases: React.FC = () => {
                       const silverType = silverTypes.find(st => st.id === selectedSilverForPayment);
                       if (silverType) { const newQuantity = Math.max(0, silverType.initialQuantity - silverWeight); updateSilverType(silverType.id, { initialQuantity: newQuantity }); }
                     }
+                    const paidSilverType = silverTypes.find(st => st.id === selectedSilverForPayment);
+                    await addDebtPayment({
+                      partyType: 'supplier',
+                      partyId: selectedDebtSupplier,
+                      partyName: suppliers.find(s => s.id === selectedDebtSupplier)?.name || '',
+                      amount,
+                      date: new Date().toISOString(),
+                      method: debtPaymentType === 'silver' ? 'silver' : 'cash',
+                      silverTypeId: debtPaymentType === 'silver' ? selectedSilverForPayment : undefined,
+                      silverTypeName: debtPaymentType === 'silver' ? paidSilverType?.name : undefined,
+                      pricePerGram: debtPaymentType === 'silver' ? parseFloat(silverPricePerGram) : undefined,
+                      weight: debtPaymentType === 'silver' ? totalSilverToDeduct : undefined,
+                      allocations,
+                      note: allocations.length > 1 ? `Réparti sur ${allocations.length} factures` : '',
+                    });
                     closeShowDebtPaymentModal(); setPaymentProcessing(false);
                     alert(`Paiement de ${amount.toLocaleString()} DZD effectué avec succès${debtPaymentType === 'silver' ? ` (${totalSilverToDeduct.toFixed(2)}g d'argent déduit)` : ''}`);
                   }}

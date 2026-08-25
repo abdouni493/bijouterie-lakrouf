@@ -18,6 +18,7 @@ import {
   StoreExpense,
   PaymentAction,
   Debt,
+  DebtPayment,
   ReplacementInvoice,
   CassiePurchase,
   MeltingRecord,
@@ -44,6 +45,7 @@ interface AppState {
   deliveries: Delivery[];
   storeExpenses: StoreExpense[];
   debts: Debt[];
+  debtPayments: DebtPayment[];
   cassiePurchases: any[];
   meltings: any[];
   shapes: string[];
@@ -102,8 +104,10 @@ interface AppState {
   updateClient: (id: string, c: Partial<import('./types').Client>) => Promise<void>;
   deleteClient: (id: string) => Promise<void>;
   addClientPayment: (clientId: string, p: Omit<import('./types').ClientPayment, 'id'>) => Promise<void>;
+  updateClientPayment: (clientId: string, paymentId: string, p: Partial<import('./types').ClientPayment>) => Promise<void>;
   deleteClientPayment: (clientId: string, paymentId: string) => Promise<void>;
   addClientRecuperation: (clientId: string, r: Omit<import('./types').ClientRecuperation, 'id'>) => Promise<void>;
+  updateClientRecuperation: (clientId: string, recuperationId: string, r: Partial<import('./types').ClientRecuperation>) => Promise<void>;
   deleteClientRecuperation: (clientId: string, recuperationId: string) => Promise<void>;
 
   replacements: import('./types').ReplacementInvoice[];
@@ -115,6 +119,10 @@ interface AppState {
   updateDebt: (id: string, d: Partial<Debt>) => Promise<void>;
   deleteDebt: (id: string) => Promise<void>;
   payDebt: (id: string, amount: number) => Promise<void>;
+
+  addDebtPayment: (p: Omit<DebtPayment, 'id' | 'createdAt'>) => Promise<string>;
+  updateDebtPayment: (id: string, p: Partial<DebtPayment>) => Promise<void>;
+  deleteDebtPayment: (id: string) => Promise<void>;
 
   addCassiePurchase: (cp: Omit<import('./types').CassiePurchase, 'id' | 'date' | 'isMelted'>) => Promise<void>;
   updateCassiePurchase: (id: string, cp: Partial<import('./types').CassiePurchase>) => Promise<void>;
@@ -177,6 +185,15 @@ const stToRow = (st: SilverType) => ({
   id: st.id, name: st.name, calibre: st.calibre,
   initial_quantity: st.initialQuantity, is_cassie: st.isCassie,
   is_ala_piece: (st as any).isAlaPiece || false, shapes: st.shapes,
+});
+
+const dpToRow = (d: DebtPayment) => ({
+  id: d.id, party_type: d.partyType, party_id: d.partyId, party_name: d.partyName,
+  amount: d.amount, date: d.date, method: d.method,
+  silver_type_id: d.silverTypeId || null, silver_type_name: d.silverTypeName || null,
+  price_per_gram: d.pricePerGram ?? null, weight: d.weight ?? null,
+  invoice_id: d.invoiceId || null, allocations: d.allocations || [],
+  note: d.note || '', created_at: d.createdAt,
 });
 
 const upsertSilverTypes = async (types: SilverType[]) => {
@@ -246,6 +263,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [cassiePurchases, setCassiePurchases] = useState<CassiePurchase[]>([]);
   const [meltings, setMeltings] = useState<MeltingRecord[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
+  const [debtPayments, setDebtPayments] = useState<DebtPayment[]>([]);
   const [replacements, setReplacements] = useState<ReplacementInvoice[]>([]);
   const [clients, setClients] = useState<import('./types').Client[]>([]);
 
@@ -282,7 +300,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const [
           stRes, supRes, purRes, saleRes, wsRes, cmdRes, wrkRes, advRes, absRes, payRes,
           delRes, expRes, debtRes, repRes, cliRes, cpRes, meltRes, silRes,
-          woRes, wsoRes, wdcRes, wcRes, worderRes, settRes,
+          woRes, wsoRes, wdcRes, wcRes, worderRes, settRes, dpayRes,
         ] = await Promise.allSettled([
           supabase.from('silver_types').select('*'),
           supabase.from('suppliers').select('*'),
@@ -308,6 +326,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           supabase.from('web_contacts').select('*').eq('id', 'main').maybeSingle(),
           supabase.from('web_orders').select('*'),
           supabase.from('store_settings').select('*').eq('id', 'main').maybeSingle(),
+          supabase.from('debt_payments').select('*'),
         ]);
 
         const ok = <T,>(r: PromiseSettledResult<{ data: T | null; error: any }>): T | null =>
@@ -382,6 +401,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           id: String(r.id), date: r.date, name: r.name, direction: r.direction,
           amount: Number(r.amount || 0), amountPaid: Number(r.amount_paid || 0),
           remaining: Number(r.remaining || 0), isPaid: Boolean(r.is_paid), note: r.note || '',
+        })));
+
+        const dpayData = ok<any[]>(dpayRes);
+        if (dpayData?.length) setDebtPayments(dpayData.map(r => ({
+          id: String(r.id), partyType: r.party_type, partyId: String(r.party_id),
+          partyName: r.party_name || '', amount: Number(r.amount || 0), date: r.date,
+          method: r.method || 'cash', silverTypeId: r.silver_type_id || undefined,
+          silverTypeName: r.silver_type_name || undefined,
+          pricePerGram: r.price_per_gram !== null && r.price_per_gram !== undefined ? Number(r.price_per_gram) : undefined,
+          weight: r.weight !== null && r.weight !== undefined ? Number(r.weight) : undefined,
+          invoiceId: r.invoice_id || undefined, allocations: r.allocations || [],
+          note: r.note || '', createdAt: r.created_at || r.date,
         })));
 
         const repData = ok<any[]>(repRes);
@@ -978,6 +1009,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setClients(prev => prev.map(c => c.id === clientId ? { ...c, payments: newPayments } : c));
   };
 
+  const updateClientPayment = async (clientId: string, paymentId: string, p: Partial<import('./types').ClientPayment>) => {
+    const client = clients.find(c => c.id === clientId);
+    if (!client) return;
+    const newPayments = client.payments.map(pm => pm.id === paymentId ? { ...pm, ...p, amount: Number(p.amount ?? pm.amount) || 0 } : pm);
+    const { error } = await supabase.from('clients').update({ payments: newPayments }).eq('id', clientId);
+    if (error) { console.error('[updateClientPayment]', error.message); return; }
+    setClients(prev => prev.map(c => c.id === clientId ? { ...c, payments: newPayments } : c));
+  };
+
   const deleteClientPayment = async (clientId: string, paymentId: string) => {
     const client = clients.find(c => c.id === clientId);
     if (!client) return;
@@ -993,6 +1033,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newRecs = [...(client.recuperations || []), { ...r, id: Date.now().toString() }];
     const { error } = await supabase.from('clients').update({ recuperations: newRecs }).eq('id', clientId);
     if (error) { console.error('[addClientRecuperation]', error.message); return; }
+    setClients(prev => prev.map(c => c.id === clientId ? { ...c, recuperations: newRecs } : c));
+  };
+
+  const updateClientRecuperation = async (clientId: string, recuperationId: string, r: Partial<import('./types').ClientRecuperation>) => {
+    const client = clients.find(c => c.id === clientId);
+    if (!client) return;
+    const newRecs = (client.recuperations || []).map(rec => rec.id === recuperationId ? { ...rec, ...r, amount: Number(r.amount ?? rec.amount) || 0 } : rec);
+    const { error } = await supabase.from('clients').update({ recuperations: newRecs }).eq('id', clientId);
+    if (error) { console.error('[updateClientRecuperation]', error.message); return; }
     setClients(prev => prev.map(c => c.id === clientId ? { ...c, recuperations: newRecs } : c));
   };
 
@@ -1049,6 +1098,137 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { error } = await supabase.from('debts').update({ amount_paid: afterPaid, remaining, is_paid: isPaid }).eq('id', id);
     if (error) { console.error('[payDebt]', error.message); return; }
     setDebts(prev => prev.map(item => item.id === id ? { ...item, amountPaid: afterPaid, remaining, isPaid } : item));
+  };
+
+  // ─── DEBT PAYMENT LEDGER ─────────────────────────────────────────
+  // Recompute an invoice after `delta` is added to (or removed from) its paid
+  // amount. Returns a full invoice object — never mutates the argument.
+  const buildPurchasePatch = (inv: PurchaseInvoice, delta: number, method: DebtPayment['method']): PurchaseInvoice => {
+    const invoiceTotal = inv.items.reduce((a, b) => a + (b.totalPrice || 0), 0);
+    const paid = (inv.amountPaid !== undefined && inv.amountPaid !== null) ? inv.amountPaid : (inv.payment?.total || 0);
+    const newPaid = Math.max(0, Math.min(invoiceTotal, paid + delta));
+    const applied = newPaid - paid;
+    const payment = { ...(inv.payment || {}) } as PurchaseInvoice['payment'];
+    if (method === 'cash') {
+      payment.cash = Math.max(0, (payment.cash || 0) + applied);
+      payment.total = Math.max(0, (payment.total || 0) + applied);
+    }
+    const remaining = Math.max(0, invoiceTotal - newPaid);
+    return { ...inv, payment, amountPaid: newPaid, remaining, isDebt: remaining > 0 };
+  };
+
+  const persistPurchases = async (updated: PurchaseInvoice[]) => {
+    if (!updated.length) return;
+    await Promise.all(updated.map(inv =>
+      supabase.from('purchase_invoices').update({
+        supplier_id: inv.supplierId, date: inv.date, items: inv.items, payment: inv.payment,
+        amount_paid: inv.amountPaid, remaining: inv.remaining, is_debt: inv.isDebt,
+      }).eq('id', inv.id)
+    ));
+    const byId = new Map(updated.map(inv => [inv.id, inv]));
+    setPurchases(prev => prev.map(item => byId.get(item.id) || item));
+  };
+
+  // Undo a payment's effect on the invoices it was applied to. `working` carries
+  // pending edits so several operations can be staged before a single write.
+  const reverseAllocations = (payment: DebtPayment, working: Map<string, PurchaseInvoice>) => {
+    const allocs = (payment.allocations && payment.allocations.length)
+      ? payment.allocations
+      : (payment.invoiceId ? [{ invoiceId: payment.invoiceId, amount: payment.amount }] : []);
+    allocs.forEach(a => {
+      const inv = working.get(a.invoiceId) || purchases.find(pp => pp.id === a.invoiceId);
+      if (!inv) return;
+      working.set(a.invoiceId, buildPurchasePatch(inv, -Math.abs(a.amount), payment.method));
+    });
+  };
+
+  // Spread `amount` over a supplier's still-unpaid invoices, oldest first.
+  const allocateToSupplier = (supplierId: string, amount: number, method: DebtPayment['method'], working: Map<string, PurchaseInvoice>) => {
+    const allocations: { invoiceId: string; amount: number }[] = [];
+    let left = amount;
+    const invoices = purchases
+      .filter(pp => pp.supplierId === supplierId)
+      .map(pp => working.get(pp.id) || pp)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    for (const inv of invoices) {
+      if (left <= 0) break;
+      const invoiceTotal = inv.items.reduce((a, b) => a + (b.totalPrice || 0), 0);
+      const paid = (inv.amountPaid !== undefined && inv.amountPaid !== null) ? inv.amountPaid : (inv.payment?.total || 0);
+      const remaining = Math.max(0, invoiceTotal - paid);
+      if (remaining <= 0) continue;
+      const applied = Math.min(left, remaining);
+      left -= applied;
+      working.set(inv.id, buildPurchasePatch(inv, applied, method));
+      allocations.push({ invoiceId: inv.id, amount: applied });
+    }
+    return allocations;
+  };
+
+  // Give back (or take away) silver stock when a silver-settled payment changes.
+  const adjustSilverStock = async (silverTypeId: string | undefined, deltaGrams: number) => {
+    if (!silverTypeId || !deltaGrams) return;
+    const st = silverTypes.find(x => x.id === silverTypeId);
+    if (!st) return;
+    const next = Math.max(0, Number(st.initialQuantity || 0) + deltaGrams);
+    await updateSilverType(silverTypeId, { initialQuantity: next });
+  };
+
+  const addDebtPayment = async (p: Omit<DebtPayment, 'id' | 'createdAt'>) => {
+    const id = `${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    const createdAt = new Date().toISOString();
+    const record: DebtPayment = {
+      ...p, id, createdAt,
+      amount: Number(p.amount) || 0,
+      allocations: p.allocations || [],
+    };
+    const { error } = await supabase.from('debt_payments').insert(dpToRow(record));
+    // Keep the local record even when the remote table is unavailable so the
+    // history stays usable until the migration is applied.
+    if (error) console.error('[addDebtPayment]', error.message);
+    setDebtPayments(prev => [...prev, record]);
+    return id;
+  };
+
+  const updateDebtPayment = async (id: string, patch: Partial<DebtPayment>) => {
+    const existing = debtPayments.find(d => d.id === id);
+    if (!existing) return;
+    const merged: DebtPayment = { ...existing, ...patch };
+    merged.amount = Number(merged.amount) || 0;
+
+    if (existing.partyType === 'supplier' && merged.amount !== existing.amount) {
+      const working = new Map<string, PurchaseInvoice>();
+      reverseAllocations(existing, working);
+      merged.allocations = allocateToSupplier(existing.partyId, merged.amount, merged.method, working);
+      await persistPurchases([...working.values()]);
+    }
+
+    if (merged.method === 'silver' || merged.method === 'gold') {
+      const ppg = Number(merged.pricePerGram) || 0;
+      const newWeight = ppg > 0 ? merged.amount / ppg : (merged.weight || 0);
+      await adjustSilverStock(merged.silverTypeId, (existing.weight || 0) - newWeight);
+      merged.weight = newWeight;
+    }
+
+    const { error } = await supabase.from('debt_payments').update(dpToRow(merged)).eq('id', id);
+    if (error) console.error('[updateDebtPayment]', error.message);
+    setDebtPayments(prev => prev.map(d => d.id === id ? merged : d));
+  };
+
+  const deleteDebtPayment = async (id: string) => {
+    const existing = debtPayments.find(d => d.id === id);
+    if (existing) {
+      if (existing.partyType === 'supplier') {
+        const working = new Map<string, PurchaseInvoice>();
+        reverseAllocations(existing, working);
+        await persistPurchases([...working.values()]);
+      }
+      if ((existing.method === 'silver' || existing.method === 'gold') && existing.weight) {
+        await adjustSilverStock(existing.silverTypeId, existing.weight);
+      }
+    }
+    const { error } = await supabase.from('debt_payments').delete().eq('id', id);
+    if (error) console.error('[deleteDebtPayment]', error.message);
+    setDebtPayments(prev => prev.filter(d => d.id !== id));
   };
 
   // ─── CASSIE PURCHASES ────────────────────────────────────────────────────
@@ -1674,7 +1854,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   return (
     <AppContext.Provider value={{
       user, language, silverTypes, suppliers, purchases, sales, workshops, commands, workers,
-      workerAdvances, workerAbsences, workerPayments, deliveries, storeExpenses, debts,
+      workerAdvances, workerAbsences, workerPayments, deliveries, storeExpenses, debts, debtPayments,
       replacements, shapes, settings, clients, calibres, metals, minimalWeight,
       cassiePurchases, meltings,
       setUser, setLanguage,
@@ -1689,13 +1869,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addDelivery, updateDelivery, deleteDelivery, addPaymentAction, deletePaymentAction,
       addStoreExpense, updateStoreExpense, deleteStoreExpense,
       addDebt, updateDebt, deleteDebt, payDebt,
+      addDebtPayment, updateDebtPayment, deleteDebtPayment,
       addCassiePurchase, updateCassiePurchase, deleteCassiePurchase,
       meltCassiePurchases, deleteMeltingRecord, updateMeltingRecord,
       addReplacement, updateReplacement, deleteReplacement,
       addShape, updateShape, deleteShape, updateSettings,
       addCalibre, deleteCalibre, addMetal, deleteMetal, setMinimalWeight,
       addClient, updateClient, deleteClient,
-      addClientPayment, deleteClientPayment, addClientRecuperation, deleteClientRecuperation,
+      addClientPayment, updateClientPayment, deleteClientPayment,
+      addClientRecuperation, updateClientRecuperation, deleteClientRecuperation,
       silverPricePerGram, setSilverPricePerGram,
       webOffers, addWebOffer, updateWebOffer, deleteWebOffer,
       webSpecialOffers, addWebSpecialOffer, updateWebSpecialOffer, deleteWebSpecialOffer,
