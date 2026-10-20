@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Supabase migration data (private customer data + login hash) - never commit
+supabase_data/
